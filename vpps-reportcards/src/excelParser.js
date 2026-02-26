@@ -351,7 +351,7 @@ export function generateSampleTemplate(template) {
     const data = [
         cols,
         [1, 101, "Aarav Sharma", "Rahul Sharma", "Priya Sharma", "15/05/2012", "V", "A", "2024-25", 195, 200, 75, 18, 80, 19, 92, 85, 15, 88, 45, 48, 90, 95, 85, 90],
-        [2, 102, "Isha Verma", "Anil Verma", "Kavita Verma", "22/08/2012", "V", "A", "2024-25", 180, 200, 88, 19, "AB", 18, 78, 75, 19, 90, 40, 45, 85, 92, 90, 85],
+        [2, 102, "Isha Verma", "Anil Verma", "Kavita Verma", "22/08/2012", "V", "A", "2024-25", 180, 200, 78, 19, "AB", 18, 78, 75, 19, 90, 40, 45, 85, 92, 90, 85],
         [3, 103, "Rohan Das", "Sunil Das", "Anita Das", "10/01/2012", "V", "A", "2024-25", 190, 200, 65, 15, 70, 16, 85, 78, 14, 82, 38, 42, 88, 90, 80, 88]
     ];
 

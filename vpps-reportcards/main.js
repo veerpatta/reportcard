@@ -492,6 +492,9 @@ async function runGenerate() {
 
   try {
     const validStudents = parsedStudents.filter(s => !s.computed.hasErrors);
+    if (validStudents.length === 0) {
+      throw new Error("No valid students without errors found to generate PDF.");
+    }
     const blob = await renderReportCards(validStudents, defaultTemplate.subjects, (current, total) => {
       const pct = Math.round((current / total) * 100);
       progressFill.style.width = `${pct}%`;
@@ -502,6 +505,7 @@ async function runGenerate() {
     downloadPdfBtn.href = generatedPdfUrl;
     downloadActionContainer.classList.remove('hidden');
 
+    downloadPdfBtn.click(); // Trigger auto-download
     showStatus('success', `🎉 PDF generated! Your download should start automatically.`);
   } catch (err) {
     showStatus('error', `PDF generation failed: ${err.message}`);
