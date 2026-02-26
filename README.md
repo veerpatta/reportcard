@@ -1,4 +1,4 @@
-# VPPS Report Card Generator (Duplex PDF) — GitHub Pages Web App
+# VPPS Report Card Generator (Duplex PDF) — GitHub Pages Web App only
 
 A static, privacy-friendly web application for **Shri Veer Patta Senior Secondary School (VPPS)** to generate **modern, duplex-ready report cards** from an **Excel template**.
 
