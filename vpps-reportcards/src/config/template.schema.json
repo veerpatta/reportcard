@@ -1,0 +1,175 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "VPPS Report Card Template",
+    "description": "Schema that defines required student fields, subjects with their components, and Excel column-header mappings for parsing uploaded mark sheets.",
+    "type": "object",
+    "required": [
+        "studentFields",
+        "subjects",
+        "columnMappings",
+        "sheetName"
+    ],
+    "properties": {
+        "sheetName": {
+            "type": "string",
+            "description": "Name of the Excel sheet to read (e.g. 'details'). If the sheet is not found, the UI will let the user pick from available sheets.",
+            "default": "details"
+        },
+        "headerRow": {
+            "type": "integer",
+            "description": "1-based row index where column headers live.",
+            "default": 1,
+            "minimum": 1
+        },
+        "studentFields": {
+            "type": "object",
+            "description": "Map of internal field keys to their metadata. All listed fields are required for every student row.",
+            "required": [
+                "srNo",
+                "rollNo",
+                "name",
+                "fatherName",
+                "motherName",
+                "dob",
+                "class",
+                "section",
+                "session"
+            ],
+            "properties": {
+                "srNo": {
+                    "$ref": "#/definitions/studentField"
+                },
+                "rollNo": {
+                    "$ref": "#/definitions/studentField"
+                },
+                "name": {
+                    "$ref": "#/definitions/studentField"
+                },
+                "fatherName": {
+                    "$ref": "#/definitions/studentField"
+                },
+                "motherName": {
+                    "$ref": "#/definitions/studentField"
+                },
+                "dob": {
+                    "$ref": "#/definitions/studentField",
+                    "properties": {
+                        "format": {
+                            "type": "string",
+                            "description": "Expected date format string, e.g. DD/MM/YYYY",
+                            "default": "DD/MM/YYYY"
+                        }
+                    }
+                },
+                "class": {
+                    "$ref": "#/definitions/studentField"
+                },
+                "section": {
+                    "$ref": "#/definitions/studentField"
+                },
+                "session": {
+                    "$ref": "#/definitions/studentField"
+                }
+            },
+            "additionalProperties": {
+                "$ref": "#/definitions/studentField"
+            }
+        },
+        "subjects": {
+            "type": "array",
+            "description": "Ordered list of subjects appearing on the report card.",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/definitions/subject"
+            }
+        },
+        "columnMappings": {
+            "type": "object",
+            "description": "Maps each subject key to one or more Excel column headers. Keys must match subject.key values in the subjects array.",
+            "additionalProperties": {
+                "$ref": "#/definitions/columnMapping"
+            }
+        }
+    },
+    "definitions": {
+        "studentField": {
+            "type": "object",
+            "required": [
+                "label",
+                "excelHeader"
+            ],
+            "properties": {
+                "label": {
+                    "type": "string",
+                    "description": "Human-readable label for this field."
+                },
+                "excelHeader": {
+                    "type": "string",
+                    "description": "Exact column header text in the Excel file."
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "string",
+                        "number",
+                        "date"
+                    ],
+                    "default": "string"
+                },
+                "required": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
+        },
+        "subject": {
+            "type": "object",
+            "required": [
+                "key",
+                "label",
+                "maxMarks",
+                "components"
+            ],
+            "properties": {
+                "key": {
+                    "type": "string",
+                    "description": "Unique identifier for the subject, e.g. 'english', 'math'."
+                },
+                "label": {
+                    "type": "string",
+                    "description": "Display name, e.g. 'English', 'Mathematics'."
+                },
+                "maxMarks": {
+                    "type": "number",
+                    "description": "Maximum total marks for this subject.",
+                    "minimum": 1
+                },
+                "components": {
+                    "type": "array",
+                    "description": "Mark breakdown components. Use [\"theory\",\"practical\"] for split subjects or [\"total\"] for single-mark subjects.",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "theory",
+                            "practical",
+                            "total",
+                            "internal",
+                            "external",
+                            "project",
+                            "viva"
+                        ]
+                    }
+                }
+            }
+        },
+        "columnMapping": {
+            "type": "object",
+            "description": "Maps each component of a subject to its Excel column header.",
+            "additionalProperties": {
+                "type": "string",
+                "description": "The exact Excel column header text for this component."
+            }
+        }
+    }
+}
