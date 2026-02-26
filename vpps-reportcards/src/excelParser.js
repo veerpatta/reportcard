@@ -226,6 +226,13 @@ export async function parseExcel(file, template, sheetOverride) {
                         message: `${subject.label} ${component} is blank — treated as 0.`,
                     });
                     raw = 0;
+                } else if (typeof raw === "string" && raw.trim().toUpperCase() === "AB") {
+                    warnings.push({
+                        row: rowNum,
+                        field: `${subject.key}.${component}`,
+                        message: `${subject.label} ${component} is marked 'AB' (Absent) — treated as 0.`,
+                    });
+                    raw = 0;
                 }
 
                 const num = Number(raw);
@@ -328,9 +335,7 @@ export function generateSampleTemplate(template) {
         cols.push(field.excelHeader);
     }
 
-    // Insert attendance fields if they exist, or just append them if they don't
-    if (!cols.includes("Attend Present")) cols.push("Attend Present");
-    if (!cols.includes("Attend Total")) cols.push("Attend Total");
+    // (Attendance fields are already included in template.studentFields)
 
     // Subject marks columns
     for (const subject of template.subjects) {
