@@ -72,10 +72,8 @@ const CHART_DEFAULTS = {
  * Falls back to a hidden DOM canvas if OffscreenCanvas is unavailable.
  */
 function createCanvas(width, height) {
-    if (typeof OffscreenCanvas !== 'undefined') {
-        return new OffscreenCanvas(width, height);
-    }
-    // Fallback: hidden DOM canvas
+    // We intentionally avoid OffscreenCanvas because it lacks `.toDataURL()`
+    // support in several browsers (e.g. Safari, older Firefox), which Chart.js requires.
     const c = document.createElement('canvas');
     c.width = width;
     c.height = height;
