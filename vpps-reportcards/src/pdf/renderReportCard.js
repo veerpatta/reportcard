@@ -97,8 +97,12 @@ export async function renderReportCards(students, subjects, onProgress) {
     const a = document.createElement('a');
     a.href = url;
     a.download = 'ReportCards_Duplex.pdf';
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    return blob;
 }
 
 /* ══════════════════════════════════════════════════════════════

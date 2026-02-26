@@ -180,6 +180,17 @@ app.innerHTML = `
           <span class="btn__text" id="generate-btn-text">Generate Duplex PDF</span>
           <span class="btn__spinner hidden" id="generate-spinner"></span>
         </button>
+
+        <div id="download-action-container" class="hidden" style="margin-top: 1rem;">
+          <a id="download-pdf-btn" class="btn btn--wide" href="#" download="ReportCards_Duplex.pdf" style="text-decoration: none; justify-content: center; display: flex; align-items: center; background-color: var(--success); color: white; border: none;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span class="btn__text">Download PDF Now</span>
+          </a>
+        </div>
       </div>
     </section>
 
@@ -262,6 +273,8 @@ const warningsPanel = $('#warnings-panel');
 const previewCard = $('#preview-card');
 const generateCard = $('#generate-card');
 const generateBtn = $('#generate-btn');
+const downloadActionContainer = $('#download-action-container');
+const downloadPdfBtn = $('#download-pdf-btn');
 
 /* ══════════════════════════════════════════════════════════
    Events
@@ -455,6 +468,8 @@ function showGenerateCard() {
 /* ══════════════════════════════════════════════════════════
    PDF Generation
    ══════════════════════════════════════════════════════════ */
+let generatedPdfUrl = null;
+
 async function runGenerate() {
   if (!parsedStudents.length) return;
 
@@ -468,15 +483,26 @@ async function runGenerate() {
   btnText.textContent = 'Generating…';
   generateBtn.disabled = true;
   progressWrap.classList.remove('hidden');
+  downloadActionContainer.classList.add('hidden');
+
+  if (generatedPdfUrl) {
+    URL.revokeObjectURL(generatedPdfUrl);
+    generatedPdfUrl = null;
+  }
 
   try {
     const validStudents = parsedStudents.filter(s => !s.computed.hasErrors);
-    await renderReportCards(validStudents, defaultTemplate.subjects, (current, total) => {
+    const blob = await renderReportCards(validStudents, defaultTemplate.subjects, (current, total) => {
       const pct = Math.round((current / total) * 100);
       progressFill.style.width = `${pct}%`;
       progressText.textContent = `Student ${current}/${total}`;
     });
-    showStatus('success', `🎉 PDF downloaded! ${validStudents.length} duplex report cards generated.`);
+
+    generatedPdfUrl = URL.createObjectURL(blob);
+    downloadPdfBtn.href = generatedPdfUrl;
+    downloadActionContainer.classList.remove('hidden');
+
+    showStatus('success', `🎉 PDF generated! Your download should start automatically.`);
   } catch (err) {
     showStatus('error', `PDF generation failed: ${err.message}`);
   } finally {
@@ -513,6 +539,9 @@ function hideDownstream() {
   warningsPanel.classList.add('hidden');
   previewCard.classList.add('hidden');
   generateCard.classList.add('hidden');
+  if (downloadActionContainer) {
+    downloadActionContainer.classList.add('hidden');
+  }
 }
 
 /* ══════════════════════════════════════════════════════════
