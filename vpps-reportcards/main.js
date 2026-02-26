@@ -2,7 +2,7 @@ import './style.css';
 import { getSheetNames, parseExcel } from './src/excelParser.js';
 import defaultTemplate from './src/config/defaultTemplate.js';
 import { renderReportCardFront, renderReportCardBack } from './src/ui/reportCardPreview.js';
-import { generateDuplexPDF } from './src/pdfGenerator.js';
+import { renderReportCards } from './src/pdf/renderReportCard.js';
 
 /* ── State ────────────────────────────────────────────────── */
 let currentFile = null;
@@ -17,7 +17,7 @@ const app = document.querySelector('#app');
 app.innerHTML = `
   <header class="app-header" id="app-header">
     <div class="app-header__brand">
-      <img src="/logo.png" alt="VPPS Logo" class="app-header__logo" id="header-logo" />
+      <img src="${import.meta.env.BASE_URL}logo.png" alt="VPPS Logo" class="app-header__logo" id="header-logo" />
       <div class="app-header__text">
         <h1>VPPS Report Card Generator</h1>
         <p class="subtitle">Upload Excel mark sheets → Preview → Generate duplex PDF report cards</p>
@@ -457,7 +457,7 @@ async function runGenerate() {
 
   try {
     const validStudents = parsedStudents.filter(s => !s.computed.hasErrors);
-    await generateDuplexPDF(validStudents, defaultTemplate.subjects, (current, total) => {
+    await renderReportCards(validStudents, defaultTemplate.subjects, (current, total) => {
       const pct = Math.round((current / total) * 100);
       progressFill.style.width = `${pct}%`;
       progressText.textContent = `Student ${current}/${total}`;

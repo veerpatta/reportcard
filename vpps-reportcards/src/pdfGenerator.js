@@ -28,7 +28,7 @@ export async function generateDuplexPDF(students, subjects, onProgress) {
     // Try to embed logo
     let logoImage = null;
     try {
-        const logoResp = await fetch('/logo.png');
+        const logoResp = await fetch(import.meta.env.BASE_URL + 'logo.png');
         const logoBytes = await logoResp.arrayBuffer();
         logoImage = await pdfDoc.embedPng(new Uint8Array(logoBytes));
     } catch {

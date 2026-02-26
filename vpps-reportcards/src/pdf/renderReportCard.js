@@ -55,7 +55,7 @@ export async function renderReportCards(students, subjects, onProgress) {
     // Embed logo
     let logoImage = null;
     try {
-        const resp = await fetch('/logo.png');
+        const resp = await fetch(import.meta.env.BASE_URL + 'logo.png');
         const bytes = await resp.arrayBuffer();
         logoImage = await pdfDoc.embedPng(new Uint8Array(bytes));
     } catch { /* logo unavailable – continue without it */ }

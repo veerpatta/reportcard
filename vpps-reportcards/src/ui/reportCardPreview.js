@@ -10,15 +10,15 @@
    FRONT SIDE
    ══════════════════════════════════════════════════════════ */
 export function renderReportCardFront(container, student, subjects) {
-    const info = student.info;
-    const marks = student.marks;
-    const computed = student.computed;
+  const info = student.info;
+  const marks = student.marks;
+  const computed = student.computed;
 
-    container.innerHTML = `
+  container.innerHTML = `
     <div class="rc rc--front">
       <!-- Header -->
       <div class="rc__header">
-        <img src="/logo.png" alt="VPPS" class="rc__logo" />
+        <img src="${import.meta.env.BASE_URL}logo.png" alt="VPPS" class="rc__logo" />
         <div class="rc__school-info">
           <h2 class="rc__school-name">Veer Patta Public School</h2>
           <p class="rc__school-sub">Affiliated to CBSE, New Delhi</p>
@@ -72,17 +72,17 @@ export function renderReportCardFront(container, student, subjects) {
         </thead>
         <tbody>
           ${subjects.map(sub => {
-        const m = marks[sub.key];
-        const total = m ? m._total : '—';
-        const grade = m ? getSubjectGrade(total, sub.maxMarks) : '—';
-        return `
+    const m = marks[sub.key];
+    const total = m ? m._total : '—';
+    const grade = m ? getSubjectGrade(total, sub.maxMarks) : '—';
+    return `
               <tr>
                 <td>${sub.label}</td>
                 <td class="rc__td-center">${sub.maxMarks}</td>
                 <td class="rc__td-center rc__td-marks">${total}</td>
                 <td class="rc__td-center rc__td-grade">${grade}</td>
               </tr>`;
-    }).join('')}
+  }).join('')}
         </tbody>
         <tfoot>
           <tr class="rc__total-row">
@@ -105,14 +105,14 @@ export function renderReportCardFront(container, student, subjects) {
    BACK SIDE
    ══════════════════════════════════════════════════════════ */
 export function renderReportCardBack(container, student, subjects) {
-    const info = student.info;
-    const computed = student.computed;
+  const info = student.info;
+  const computed = student.computed;
 
-    container.innerHTML = `
+  container.innerHTML = `
     <div class="rc rc--back">
       <!-- Header (repeated for print) -->
       <div class="rc__header rc__header--compact">
-        <img src="/logo.png" alt="VPPS" class="rc__logo rc__logo--sm" />
+        <img src="${import.meta.env.BASE_URL}logo.png" alt="VPPS" class="rc__logo rc__logo--sm" />
         <div class="rc__school-info">
           <h2 class="rc__school-name rc__school-name--sm">Veer Patta Public School</h2>
           <p class="rc__school-sub rc__school-sub--sm">Session: ${info.session || '—'}</p>
@@ -131,9 +131,9 @@ export function renderReportCardBack(container, student, subjects) {
         </thead>
         <tbody>
           ${[
-            'Work Education', 'Art Education', 'Health & Physical Education',
-            'Discipline', 'Library Skills'
-        ].map(area => `
+      'Work Education', 'Art Education', 'Health & Physical Education',
+      'Discipline', 'Library Skills'
+    ].map(area => `
             <tr>
               <td>${area}</td>
               <td class="rc__td-center">A</td>
@@ -206,14 +206,14 @@ export function renderReportCardBack(container, student, subjects) {
    Helpers
    ══════════════════════════════════════════════════════════ */
 function getSubjectGrade(marks, maxMarks) {
-    if (marks === '—' || marks == null || isNaN(marks)) return '—';
-    const pct = (marks / maxMarks) * 100;
-    if (pct >= 91) return 'A1';
-    if (pct >= 81) return 'A2';
-    if (pct >= 71) return 'B1';
-    if (pct >= 61) return 'B2';
-    if (pct >= 51) return 'C1';
-    if (pct >= 41) return 'C2';
-    if (pct >= 33) return 'D';
-    return 'E';
+  if (marks === '—' || marks == null || isNaN(marks)) return '—';
+  const pct = (marks / maxMarks) * 100;
+  if (pct >= 91) return 'A1';
+  if (pct >= 81) return 'A2';
+  if (pct >= 71) return 'B1';
+  if (pct >= 61) return 'B2';
+  if (pct >= 51) return 'C1';
+  if (pct >= 41) return 'C2';
+  if (pct >= 33) return 'D';
+  return 'E';
 }
