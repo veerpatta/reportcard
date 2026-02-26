@@ -13,6 +13,7 @@
  */
 
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { makeChartsForStudent } from '../charts/makeCharts.js';
 
 /* ── Constants ──────────────────────────────────────────────── */
 const PAGE_W = 842;   // A4 landscape width  in points
@@ -66,8 +67,17 @@ export async function renderReportCards(students, subjects, onProgress) {
         const student = students[i];
         if (onProgress) onProgress(i + 1, total);
 
-        drawFrontPage(ctx, student);
-        drawBackPage(ctx, student);
+        // Generate Chart.js charts for this student
+        const { barPng, radarPng } = makeChartsForStudent(student, subjects);
+
+        // Embed chart PNGs into the PDF document once
+        let barImage = null;
+        let radarImage = null;
+        if (barPng) barImage = await pdfDoc.embedPng(barPng);
+        if (radarPng) radarImage = await pdfDoc.embedPng(radarPng);
+
+        await drawFrontPage(ctx, student, barImage);
+        await drawBackPage(ctx, student, barImage, radarImage);
 
         // yield to keep UI responsive
         if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
@@ -87,7 +97,7 @@ export async function renderReportCards(students, subjects, onProgress) {
 /* ══════════════════════════════════════════════════════════════
    PAGE 1 — FRONT
    ══════════════════════════════════════════════════════════════ */
-function drawFrontPage(ctx, student) {
+async function drawFrontPage(ctx, student, barImage) {
     const { pdfDoc, font, fontBold, logoImage, subjects } = ctx;
     const page = pdfDoc.addPage([PAGE_W, PAGE_H]);
     const info = student.info;
@@ -131,9 +141,10 @@ function drawFrontPage(ctx, student) {
     y = drawInsightsBox(page, font, fontBold, marks, subjects, y);
     y -= 12;
 
-    // ── 6. Mini bar chart (subject totals) ──
-    y = drawBarChart(page, font, fontBold, marks, subjects, MARGIN, y,
-        CONTENT_W, Math.max(y - MARGIN - 46, 80));
+    // ── 6. Bar chart (Chart.js rendered PNG) ──
+    const chartHeight = Math.max(y - MARGIN - 46, 80);
+    y = embedChartImage(page, barImage, MARGIN, y, CONTENT_W, chartHeight,
+        'Subject Performance', fontBold);
 
     // ── 7. Signatures (always near bottom) ──
     drawSignatures(page, font, fontBold, MARGIN + 6);
@@ -142,7 +153,7 @@ function drawFrontPage(ctx, student) {
 /* ══════════════════════════════════════════════════════════════
    PAGE 2 — BACK
    ══════════════════════════════════════════════════════════════ */
-function drawBackPage(ctx, student) {
+async function drawBackPage(ctx, student, barImage, radarImage) {
     const { pdfDoc, font, fontBold, logoImage, subjects } = ctx;
     const page = pdfDoc.addPage([PAGE_W, PAGE_H]);
     const info = student.info;
@@ -167,16 +178,16 @@ function drawBackPage(ctx, student) {
     const chartAreaH = y - tableBottom;
     const halfChartH = Math.max((chartAreaH - 28) / 2, 70);
 
-    // Bar chart
-    const barBottom = drawBarChart(page, font, fontBold, marks, subjects,
-        chartX, y, chartW, halfChartH);
+    // Bar chart (Chart.js rendered PNG)
+    const barBottom = embedChartImage(page, barImage, chartX, y, chartW, halfChartH,
+        null, fontBold);
 
-    // Radar chart
-    drawRadarChart(page, font, fontBold, marks, subjects,
-        chartX, barBottom - 18, chartW, halfChartH);
+    // Radar chart (Chart.js rendered PNG)
+    embedChartImage(page, radarImage, chartX, barBottom - 14, chartW, halfChartH,
+        null, fontBold);
 
     // ── Teacher remarks box ──
-    const remarksY = Math.min(tableBottom, barBottom - 18 - halfChartH) - 14;
+    const remarksY = Math.min(tableBottom, barBottom - 14 - halfChartH) - 14;
     drawRemarksBox(page, font, fontBold, remarksY);
 }
 
@@ -415,187 +426,56 @@ function drawInsightsBox(page, font, fontBold, marks, subjects, y) {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   HELPER — drawBarChart()
+   HELPER — embedChartImage()
+   Embeds a Chart.js-rendered PNG into a pdf-lib page area.
    ══════════════════════════════════════════════════════════════ */
-function drawBarChart(page, font, fontBold, marks, subjects, startX, startY, width, height) {
-    // Section title
-    const titleText = 'Subject Performance';
-    const ttW = fontBold.widthOfTextAtSize(titleText, 8);
-    page.drawText(titleText, {
-        x: startX + (width - ttW) / 2,
-        y: startY,
-        size: 8,
-        font: fontBold,
-        color: C.primary,
-    });
+function embedChartImage(page, image, startX, startY, width, height, title, fontBold) {
+    // Optional section title above the chart
+    if (title && fontBold) {
+        const ttW = fontBold.widthOfTextAtSize(title, 8);
+        page.drawText(title, {
+            x: startX + (width - ttW) / 2,
+            y: startY,
+            size: 8,
+            font: fontBold,
+            color: C.primary,
+        });
+    }
 
-    const chartY = startY - 12;
-    const chartH = height - 20;
-    const chartX = startX + 4;
-    const chartW = width - 8;
+    const imgY = title ? startY - 10 : startY;
+    const imgH = title ? height - 10 : height;
 
-    if (chartH < 30) return startY - height;
+    if (!image || imgH < 30) return startY - height;
 
-    // Light background
+    // Light background behind chart
     page.drawRectangle({
-        x: startX, y: chartY - chartH,
-        width, height: chartH + 10,
+        x: startX, y: imgY - imgH,
+        width, height: imgH,
         color: rgb(0.97, 0.97, 0.99),
         borderColor: C.border,
         borderWidth: 0.3,
     });
 
-    const validSubjects = subjects.filter(s => {
-        const m = marks[s.key];
-        return m && m._total != null && !isNaN(m._total);
-    });
-    if (validSubjects.length === 0) return startY - height;
+    // Scale image to fit within the given area while preserving aspect ratio
+    const imgDims = image.scale(1);
+    const scaleX = (width - 8) / imgDims.width;
+    const scaleY = (imgH - 4) / imgDims.height;
+    const scale = Math.min(scaleX, scaleY);
+    const drawW = imgDims.width * scale;
+    const drawH = imgDims.height * scale;
 
-    const barGap = 3;
-    const barW = Math.min(
-        (chartW - barGap * (validSubjects.length + 1)) / validSubjects.length,
-        28
-    );
-    const maxMarks = Math.max(...validSubjects.map(s => s.maxMarks), 100);
-    const totalBarsWidth = validSubjects.length * barW + (validSubjects.length - 1) * barGap;
-    let bx = chartX + (chartW - totalBarsWidth) / 2;
+    // Center the image within the chart area
+    const drawX = startX + (width - drawW) / 2;
+    const drawY = imgY - imgH + (imgH - drawH) / 2;
 
-    validSubjects.forEach((sub, i) => {
-        const m = marks[sub.key];
-        const val = m._total;
-        const barH = (val / maxMarks) * (chartH - 14);
-        const color = i % 2 === 0 ? C.barFill : C.barAlt;
-
-        page.drawRectangle({
-            x: bx, y: chartY - chartH + 2,
-            width: barW, height: Math.max(barH, 2),
-            color,
-        });
-
-        // Value label on top of bar
-        const valStr = String(Math.round(val));
-        const valW = font.widthOfTextAtSize(valStr, 5.5);
-        page.drawText(valStr, {
-            x: bx + (barW - valW) / 2,
-            y: chartY - chartH + barH + 4,
-            size: 5.5, font: fontBold, color: C.text,
-        });
-
-        // Subject abbreviation below
-        const abbr = sub.label.substring(0, 3).toUpperCase();
-        const abbrW = font.widthOfTextAtSize(abbr, 5);
-        page.drawText(abbr, {
-            x: bx + (barW - abbrW) / 2,
-            y: chartY - chartH - 8,
-            size: 5, font, color: C.textLight,
-        });
-
-        bx += barW + barGap;
+    page.drawImage(image, {
+        x: drawX,
+        y: drawY,
+        width: drawW,
+        height: drawH,
     });
 
-    return chartY - chartH - 12;
-}
-
-/* ══════════════════════════════════════════════════════════════
-   HELPER — drawRadarChart()
-   ══════════════════════════════════════════════════════════════ */
-function drawRadarChart(page, font, fontBold, marks, subjects, startX, startY, width, height) {
-    const titleText = 'Performance Distribution';
-    const ttW = fontBold.widthOfTextAtSize(titleText, 8);
-    page.drawText(titleText, {
-        x: startX + (width - ttW) / 2,
-        y: startY,
-        size: 8,
-        font: fontBold,
-        color: C.primary,
-    });
-
-    const validSubjects = subjects.filter(s => {
-        const m = marks[s.key];
-        return m && m._total != null && !isNaN(m._total);
-    });
-    if (validSubjects.length < 3) return startY - height;
-
-    const centerX = startX + width / 2;
-    const centerY = startY - height / 2 - 6;
-    const radius = Math.min(width, height) / 2 - 20;
-    const n = validSubjects.length;
-    const angleStep = (2 * Math.PI) / n;
-
-    // Grid rings (3 levels)
-    for (let ring = 1; ring <= 3; ring++) {
-        const r = (radius * ring) / 3;
-        // Draw polygon for grid
-        for (let i = 0; i < n; i++) {
-            const a1 = -Math.PI / 2 + i * angleStep;
-            const a2 = -Math.PI / 2 + ((i + 1) % n) * angleStep;
-            page.drawLine({
-                start: { x: centerX + r * Math.cos(a1), y: centerY + r * Math.sin(a1) },
-                end: { x: centerX + r * Math.cos(a2), y: centerY + r * Math.sin(a2) },
-                thickness: 0.3,
-                color: C.radarGrid,
-            });
-        }
-    }
-
-    // Axis lines + labels
-    for (let i = 0; i < n; i++) {
-        const angle = -Math.PI / 2 + i * angleStep;
-        const ex = centerX + radius * Math.cos(angle);
-        const ey = centerY + radius * Math.sin(angle);
-        page.drawLine({
-            start: { x: centerX, y: centerY },
-            end: { x: ex, y: ey },
-            thickness: 0.3,
-            color: C.radarGrid,
-        });
-
-        // Subject abbreviation label
-        const abbr = validSubjects[i].label.substring(0, 3).toUpperCase();
-        const abbrW = font.widthOfTextAtSize(abbr, 5);
-        const labelR = radius + 8;
-        const lx = centerX + labelR * Math.cos(angle) - abbrW / 2;
-        const ly = centerY + labelR * Math.sin(angle) - 2;
-        page.drawText(abbr, {
-            x: lx, y: ly,
-            size: 5, font, color: C.textLight,
-        });
-    }
-
-    // Data polygon
-    const maxMarks = Math.max(...validSubjects.map(s => s.maxMarks), 100);
-    const points = validSubjects.map((sub, i) => {
-        const m = marks[sub.key];
-        const val = m._total;
-        const r = (val / maxMarks) * radius;
-        const angle = -Math.PI / 2 + i * angleStep;
-        return {
-            x: centerX + r * Math.cos(angle),
-            y: centerY + r * Math.sin(angle),
-        };
-    });
-
-    // Draw data polygon edges
-    for (let i = 0; i < points.length; i++) {
-        const next = points[(i + 1) % points.length];
-        page.drawLine({
-            start: points[i],
-            end: next,
-            thickness: 1.2,
-            color: C.radarLine,
-        });
-    }
-
-    // Draw data points
-    points.forEach(p => {
-        page.drawCircle({
-            x: p.x, y: p.y,
-            size: 2,
-            color: C.radarFill,
-        });
-    });
-
-    return startY - height;
+    return imgY - imgH - 4;
 }
 
 /* ══════════════════════════════════════════════════════════════
