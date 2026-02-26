@@ -316,9 +316,21 @@ export function generateSampleTemplate(template) {
     const cols = [];
 
     // Student Info columns
+    // Use EXACT names as requested if possible or fallback to standard config behavior.
+    // Since the prompt explicitly said "Columns must include: SR_NO, ROLL_NO, STUDENT_NAME, FATHER_NAME, MOTHER_NAME, DOB, CLASS, SECTION, SESSION, ATTEND_PRESENT, ATTEND_TOTAL"
+    // However, the parser relies on `template.studentFields`. We should construct the headers from the template to ensure parser compatibility, but the prompt says 
+    // "Columns must include: SR_NO, ROLL_NO, STUDENT_NAME, FATHER_NAME, MOTHER_NAME, DOB, CLASS, SECTION, SESSION, ATTEND_PRESENT, ATTEND_TOTAL"
+    // Wait, the prompt says "Ensure the template matches the parser... The parser should validate required columns and show missing-column errors clearly."
+    // If we use "SR_NO" but the template says "Sr No", the parser will fail. Let's update `defaultTemplate.js` to match these new headers OR just output what's in deafultTemplate but also ensure attendances are added.
+
+    // Let's rely on defaultTemplate fields for the main info to guarantee parser compatibility, plus add attendance.
     for (const field of Object.values(template.studentFields)) {
         cols.push(field.excelHeader);
     }
+
+    // Insert attendance fields if they exist, or just append them if they don't
+    if (!cols.includes("Attend Present")) cols.push("Attend Present");
+    if (!cols.includes("Attend Total")) cols.push("Attend Total");
 
     // Subject marks columns
     for (const subject of template.subjects) {
@@ -333,8 +345,9 @@ export function generateSampleTemplate(template) {
     // Sample data rows
     const data = [
         cols,
-        [1, 101, "Aarav Sharma", "Rahul Sharma", "Priya Sharma", "15/05/2012", "V", "A", "2024-25", 75, 18, 80, 19, 92, 85, 15, 88, 45, 48, 90, 95, 85, 90],
-        [2, 102, "Isha Verma", "Anil Verma", "Kavita Verma", "22/08/2012", "V", "A", "2024-25", 88, 19, 85, 18, 78, 75, 19, 90, 40, 45, 85, 92, 90, 85]
+        [1, 101, "Aarav Sharma", "Rahul Sharma", "Priya Sharma", "15/05/2012", "V", "A", "2024-25", 195, 200, 75, 18, 80, 19, 92, 85, 15, 88, 45, 48, 90, 95, 85, 90],
+        [2, 102, "Isha Verma", "Anil Verma", "Kavita Verma", "22/08/2012", "V", "A", "2024-25", 180, 200, 88, 19, "AB", 18, 78, 75, 19, 90, 40, 45, 85, 92, 90, 85],
+        [3, 103, "Rohan Das", "Sunil Das", "Anita Das", "10/01/2012", "V", "A", "2024-25", 190, 200, 65, 15, 70, 16, 85, 78, 14, 82, 38, 42, 88, 90, 80, 88]
     ];
 
     const wb = XLSX.utils.book_new();
@@ -343,7 +356,40 @@ export function generateSampleTemplate(template) {
     // Make columns wider
     ws['!cols'] = cols.map(c => ({ wch: Math.max(c.length + 2, 12) }));
 
-    // Write sheet and trigger download
+    // Bold top row
+    for (let C = 0; C < cols.length; ++C) {
+        const addr = XLSX.utils.encode_cell({ r: 0, c: C });
+        if (!ws[addr]) continue;
+        ws[addr].s = { font: { bold: true } };
+    }
+
+    // Freeze top row
+    ws['!views'] = [{ state: 'frozen', xSplit: 0, ySplit: 1 }];
+
     XLSX.utils.book_append_sheet(wb, ws, template.sheetName || "details");
-    XLSX.writeFile(wb, "VPPS_Sample_Template.xlsx");
+
+    // Add instructions sheet
+    const instructionsData = [
+        ["VPPS Report Card Excel Template Instructions"],
+        [""],
+        ["1. One row = one student."],
+        ["2. Do not rename the columns on the 'details' sheet, the system relies on exact names."],
+        ["3. Marks must be numerical values or 'AB' (Absent)."],
+        ["4. Date of Birth (DOB) must be formatted as DD/MM/YYYY."],
+        ["5. Ensure Attend Present and Attend Total fields are complete."],
+        ["6. Make sure you enter the data in the 'details' sheet only."]
+    ];
+
+    const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
+    wsInstructions['!cols'] = [{ wch: 80 }];
+
+    // Make Instruction Title Bold
+    if (wsInstructions['A1']) {
+        wsInstructions['A1'].s = { font: { bold: true, sz: 14 } };
+    }
+
+    XLSX.utils.book_append_sheet(wb, wsInstructions, "instructions");
+
+    // Write sheet and trigger download
+    XLSX.writeFile(wb, "VPPS_ReportCard_Template.xlsx");
 }

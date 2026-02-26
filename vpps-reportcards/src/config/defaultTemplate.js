@@ -13,15 +13,17 @@ const defaultTemplate = {
 
     /* ── Required student info fields ────────────────────────── */
     studentFields: {
-        srNo: { label: "Sr. No.", excelHeader: "Sr No", type: "number" },
-        rollNo: { label: "Roll No.", excelHeader: "Roll No", type: "number" },
-        name: { label: "Student Name", excelHeader: "Name", type: "string" },
-        fatherName: { label: "Father's Name", excelHeader: "Father Name", type: "string" },
-        motherName: { label: "Mother's Name", excelHeader: "Mother Name", type: "string" },
+        srNo: { label: "Sr. No.", excelHeader: "SR_NO", type: "number" },
+        rollNo: { label: "Roll No.", excelHeader: "ROLL_NO", type: "number" },
+        name: { label: "Student Name", excelHeader: "STUDENT_NAME", type: "string" },
+        fatherName: { label: "Father's Name", excelHeader: "FATHER_NAME", type: "string" },
+        motherName: { label: "Mother's Name", excelHeader: "MOTHER_NAME", type: "string" },
         dob: { label: "Date of Birth", excelHeader: "DOB", type: "date", format: "DD/MM/YYYY" },
-        class: { label: "Class", excelHeader: "Class", type: "string" },
-        section: { label: "Section", excelHeader: "Section", type: "string" },
-        session: { label: "Session", excelHeader: "Session", type: "string" },
+        class: { label: "Class", excelHeader: "CLASS", type: "string" },
+        section: { label: "Section", excelHeader: "SECTION", type: "string" },
+        session: { label: "Session", excelHeader: "SESSION", type: "string" },
+        attendPresent: { label: "Attendance Present", excelHeader: "ATTEND_PRESENT", type: "number" },
+        attendTotal: { label: "Attendance Total", excelHeader: "ATTEND_TOTAL", type: "number" },
     },
 
     /* ── Subjects ────────────────────────────────────────────── */
