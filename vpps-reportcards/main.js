@@ -175,6 +175,60 @@ app.innerHTML = `
         </button>
       </div>
     </section>
+
+    <!-- ═══ Print Help ═══ -->
+    <section class="card" id="print-help-card">
+      <div class="card__header">
+        <span class="card__step">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"/>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+        </span>
+        <h2 class="card__title">Print Help</h2>
+      </div>
+      <div class="card__body">
+        <p class="print-help__intro">To print the generated PDF as duplex (double-sided) report cards, use these printer settings:</p>
+
+        <div class="print-help__steps">
+          <div class="print-help__step">
+            <span class="print-help__step-num">1</span>
+            <div class="print-help__step-body">
+              <strong>Print on Both Sides (Duplex)</strong>
+              <p>Enable <code>Print on Both Sides</code> or <code>Two-Sided Printing</code> in your printer dialog. This ensures each student's front and back are printed on a single sheet.</p>
+            </div>
+          </div>
+
+          <div class="print-help__step">
+            <span class="print-help__step-num">2</span>
+            <div class="print-help__step-body">
+              <strong>Flip on Long Edge</strong>
+              <p>Select <code>Flip on Long Edge</code> (sometimes called "Long-Edge Binding"). This makes the back page flip correctly like a book — not upside-down.</p>
+            </div>
+          </div>
+
+          <div class="print-help__step">
+            <span class="print-help__step-num">3</span>
+            <div class="print-help__step-body">
+              <strong>Paper Size: A4 Landscape</strong>
+              <p>Set paper size to <code>A4</code> and orientation to <code>Landscape</code>. The PDF is already laid out in A4 landscape format (842 × 595 pts).</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="print-help__note">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="16" x2="12" y2="12"/>
+            <line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          <div>
+            <strong>PDF Page Order:</strong> The PDF is generated as Student 1 Front → Student 1 Back → Student 2 Front → Student 2 Back, and so on. This is the correct order for duplex printing — no manual reordering needed.
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer class="app-footer">

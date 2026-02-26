@@ -932,6 +932,106 @@ h1 {
 }
 
 /* ══════════════════════════════════════════════════════════
+   Print Help
+   ══════════════════════════════════════════════════════════ */
+.print-help__intro {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  margin: 0 0 1.25rem;
+  line-height: 1.6;
+}
+
+.print-help__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.print-help__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  transition: border-color var(--duration) var(--ease),
+    box-shadow var(--duration) var(--ease);
+}
+
+.print-help__step:hover {
+  border-color: var(--border-accent);
+  box-shadow: 0 0 20px rgba(108, 99, 255, 0.08);
+}
+
+.print-help__step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.print-help__step-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.print-help__step-body strong {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.print-help__step-body p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.print-help__step-body code {
+  background: var(--bg-base);
+  padding: 0.1em 0.4em;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  color: var(--accent);
+  font-family: "SF Mono", "Fira Code", monospace;
+}
+
+.print-help__note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: rgba(96, 165, 250, 0.06);
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.print-help__note svg {
+  flex-shrink: 0;
+  color: var(--info);
+  margin-top: 1px;
+}
+
+.print-help__note strong {
+  color: var(--info);
+}
+
+/* ══════════════════════════════════════════════════════════
    Footer
    ══════════════════════════════════════════════════════════ */
 .app-footer {
