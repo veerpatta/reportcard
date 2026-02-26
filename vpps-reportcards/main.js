@@ -1,5 +1,5 @@
 import './style.css';
-import { getSheetNames, parseExcel } from './src/excelParser.js';
+import { getSheetNames, parseExcel, generateSampleTemplate } from './src/excelParser.js';
 import defaultTemplate from './src/config/defaultTemplate.js';
 import { renderReportCardFront, renderReportCardBack } from './src/ui/reportCardPreview.js';
 import { renderReportCards } from './src/pdf/renderReportCard.js';
@@ -46,6 +46,13 @@ app.innerHTML = `
           <p class="drop-zone__label">Drop your Excel file here</p>
           <p class="drop-zone__hint">or click to browse &nbsp;—&nbsp; <code>.xlsx</code> / <code>.xls</code></p>
           <input type="file" id="file-input" accept=".xlsx,.xls,.csv" hidden />
+        </div>
+
+        <div style="margin-top: 1.25rem;">
+          <button id="download-template-btn" class="btn" style="border: 1px dashed var(--border-accent); background: var(--bg-glass); font-size: 0.85rem; color: var(--text-secondary); width: 100%; justify-content: center; display: flex; align-items: center; transition: all 0.2s;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Download Sample Excel Template
+          </button>
         </div>
 
         <!-- File info bar -->
@@ -243,6 +250,7 @@ const $ = (sel) => document.querySelector(sel);
 
 const dropZone = $('#drop-zone');
 const fileInput = $('#file-input');
+const downloadTemplateBtn = $('#download-template-btn');
 const fileInfoBar = $('#file-info-bar');
 const clearBtn = $('#clear-file');
 const configCard = $('#config-card');
@@ -275,6 +283,12 @@ fileInput.addEventListener('change', (e) => {
   if (e.target.files.length) handleFile(e.target.files[0]);
 });
 clearBtn.addEventListener('click', resetAll);
+if (downloadTemplateBtn) {
+  downloadTemplateBtn.addEventListener('click', () => {
+    generateSampleTemplate(defaultTemplate);
+    showStatus('success', 'Sample template downloaded!');
+  });
+}
 parseBtn.addEventListener('click', runParse);
 generateBtn.addEventListener('click', runGenerate);
 

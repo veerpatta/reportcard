@@ -303,3 +303,47 @@ function computeGrade(pct) {
     if (pct >= 33) return "D";
     return "E";
 }
+
+/* ═══════════════════════════════════════════════════════════
+   5. PUBLIC — sample template generation
+   ═══════════════════════════════════════════════════════════ */
+
+/**
+ * Generates and downloads a sample Excel template based on the schema.
+ * @param {Object} template 
+ */
+export function generateSampleTemplate(template) {
+    const cols = [];
+
+    // Student Info columns
+    for (const field of Object.values(template.studentFields)) {
+        cols.push(field.excelHeader);
+    }
+
+    // Subject marks columns
+    for (const subject of template.subjects) {
+        const mapping = template.columnMappings[subject.key];
+        if (mapping) {
+            for (const comp of subject.components) {
+                if (mapping[comp]) cols.push(mapping[comp]);
+            }
+        }
+    }
+
+    // Sample data rows
+    const data = [
+        cols,
+        [1, 101, "Aarav Sharma", "Rahul Sharma", "Priya Sharma", "15/05/2012", "V", "A", "2024-25", 75, 18, 80, 19, 92, 85, 15, 88, 45, 48, 90, 95, 85, 90],
+        [2, 102, "Isha Verma", "Anil Verma", "Kavita Verma", "22/08/2012", "V", "A", "2024-25", 88, 19, 85, 18, 78, 75, 19, 90, 40, 45, 85, 92, 90, 85]
+    ];
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(data);
+
+    // Make columns wider
+    ws['!cols'] = cols.map(c => ({ wch: Math.max(c.length + 2, 12) }));
+
+    // Write sheet and trigger download
+    XLSX.utils.book_append_sheet(wb, ws, template.sheetName || "details");
+    XLSX.writeFile(wb, "VPPS_Sample_Template.xlsx");
+}
