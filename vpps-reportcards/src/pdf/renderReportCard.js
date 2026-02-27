@@ -428,9 +428,12 @@ function drawSummaryTiles(page, font, fontBold, computed, info, y) {
     let resultTextRaw = computed.resultText || (computed.percentage >= 33 ? 'PASSED' : 'FAILED');
     const resultText = computed.division ? `${resultTextRaw} (${computed.division})` : resultTextRaw;
 
-    const attendStr = (info && info.attendTotal)
-        ? `${info.attendPresent || 0}/${info.attendTotal}`
-        : '-';
+    let attendStr = '-';
+    if (info && info.attendTotal && info.attendTotal > 0) {
+        const pres = info.attendPresent || 0;
+        const tot = info.attendTotal;
+        attendStr = `${Math.round((pres / tot) * 100)}%`;
+    }
 
     const tiles = [
         { label: 'Total Marks', value: String(computed.totalMarks) },
