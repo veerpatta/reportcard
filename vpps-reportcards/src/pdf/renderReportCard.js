@@ -109,6 +109,9 @@ async function drawFrontPage(ctx, student, barImage) {
 
     let y = PAGE_H - MARGIN;
 
+    // Watermark
+    drawWatermark(page, fontBold);
+
     // ── 1. Header (logo + school name + address) ──
     y = drawHeader(page, fontBold, font, logoImage, y);
 
@@ -123,6 +126,10 @@ async function drawFrontPage(ctx, student, barImage) {
         font: fontBold,
         color: C.accent,
     });
+
+    // Performance Pill Top Right
+    drawPerformancePill(page, fontBold, computed, y);
+
     y -= 6;
     page.drawLine({
         start: { x: MARGIN, y },
@@ -131,6 +138,11 @@ async function drawFrontPage(ctx, student, barImage) {
         color: C.accent,
     });
     y -= 18;
+
+    // Failed subjects callout
+    if (computed.percentage < 33 || (computed.failedSubjects && computed.failedSubjects.length > 0)) {
+        y = drawFailedCallout(page, fontBold, font, computed.failedSubjects, y);
+    }
 
     // ── 3. Student details (two-column) ──
     y = drawStudentInfo(page, font, fontBold, info, y);
@@ -166,6 +178,9 @@ async function drawBackPage(ctx, student, barImage, radarImage) {
 
     let y = PAGE_H - MARGIN;
 
+    // Watermark
+    drawWatermark(page, fontBold);
+
     // ── Mini header ──
     y = drawMiniHeader(page, fontBold, font, logoImage, info, y);
     y -= 10;
@@ -182,19 +197,108 @@ async function drawBackPage(ctx, student, barImage, radarImage) {
 
     // ── Charts section (right half) ──
     const chartAreaH = y - tableBottom;
-    const halfChartH = Math.max((chartAreaH - 28) / 2, 70);
+    // Compress chart slightly to leave room for the Component Breakdown
+    const chartRoomH = chartAreaH * 0.55;
+    const halfChartH = Math.max((chartRoomH - 28) / 2, 70);
 
     // Bar chart (Chart.js rendered PNG)
     const barBottom = embedChartImage(page, barImage, chartX, y, chartW, halfChartH,
         null, fontBold);
 
     // Radar chart (Chart.js rendered PNG)
-    embedChartImage(page, radarImage, chartX, barBottom - 14, chartW, halfChartH,
+    const radarBottom = embedChartImage(page, radarImage, chartX, barBottom - 14, chartW, halfChartH,
         null, fontBold);
 
+    // ── Component Breakdown Table (Bottom Right) ──
+    const bkdTableY = radarBottom - 16;
+    drawComponentBreakdown(page, font, fontBold, marks, drawSubjects, chartX, bkdTableY, chartW);
+
     // ── Teacher remarks box ──
-    const remarksY = Math.min(tableBottom, barBottom - 14 - halfChartH) - 14;
-    drawRemarksBox(page, font, fontBold, remarksY);
+    // Place remarks below the main Marks Table (bottom left)
+    const remarksY = tableBottom - 14;
+    drawRemarksBox(page, font, fontBold, remarksY, tableW);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HELPER — drawWatermark()
+   ══════════════════════════════════════════════════════════════ */
+function drawWatermark(page, fontBold) {
+    const text = "VPPS";
+    const size = 180;
+    const textW = fontBold.widthOfTextAtSize(text, size);
+    page.drawText(text, {
+        x: (PAGE_W - textW) / 2,
+        y: (PAGE_H - size) / 2 + 50,
+        size: size,
+        font: fontBold,
+        color: rgb(0.95, 0.95, 0.96),
+        opacity: 0.15,
+        rotate: import('pdf-lib').then(p => p.degrees(0)) // No rotation for cleaner look
+    });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HELPER — drawPerformancePill()
+   ══════════════════════════════════════════════════════════════ */
+function drawPerformancePill(page, fontBold, computed, baseY) {
+    const text = ` Grade ${computed.grade} | ${computed.percentage}% `;
+    const fontSize = 9;
+    const textW = fontBold.widthOfTextAtSize(text, fontSize);
+    const padding = 12;
+    const boxW = textW + padding * 2;
+    const boxH = 18;
+    const startX = PAGE_W - MARGIN - boxW;
+    const startY = baseY - 2;
+
+    page.drawRectangle({
+        x: startX,
+        y: startY,
+        width: boxW,
+        height: boxH,
+        color: computed.percentage >= 33 ? C.success : C.danger,
+        // Make it look rounded via a small trick or just square pill
+        borderWidth: 0,
+    });
+
+    page.drawText(text, {
+        x: startX + padding,
+        y: startY + 5,
+        size: fontSize,
+        font: fontBold,
+        color: C.white,
+    });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HELPER — drawFailedCallout()
+   ══════════════════════════════════════════════════════════════ */
+function drawFailedCallout(page, fontBold, font, failedSubjects, y) {
+    if (!failedSubjects || failedSubjects.length === 0) return y;
+
+    const text = `Attention Required: Failed in ${failedSubjects.join(', ')}`;
+    const fontSize = 8.5;
+    const padding = 8;
+    const boxH = 20;
+
+    page.drawRectangle({
+        x: MARGIN,
+        y: y - boxH,
+        width: CONTENT_W,
+        height: boxH,
+        color: rgb(0.98, 0.9, 0.9),
+        borderColor: C.danger,
+        borderWidth: 0.5,
+    });
+
+    page.drawText(text, {
+        x: MARGIN + padding,
+        y: y - boxH + 6,
+        size: fontSize,
+        font: fontBold,
+        color: C.danger,
+    });
+
+    return y - boxH - 12;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -618,8 +722,7 @@ function drawSignatures(page, font, fontBold, y) {
 /* ══════════════════════════════════════════════════════════════
    HELPER — drawRemarksBox()
    ══════════════════════════════════════════════════════════════ */
-function drawRemarksBox(page, font, fontBold, y) {
-    const boxW = CONTENT_W;
+function drawRemarksBox(page, font, fontBold, y, boxW = CONTENT_W) {
     const boxH = 40;
     const boxY = Math.max(y - boxH, MARGIN);
 
@@ -648,6 +751,95 @@ function drawRemarksBox(page, font, fontBold, y) {
             });
         }
     }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HELPER — drawComponentBreakdown()
+   ══════════════════════════════════════════════════════════════ */
+function drawComponentBreakdown(page, font, fontBold, marks, subjects, startX, startY, width) {
+    // Collect all unique component names present in enrolled subjects
+    const uniqueComps = new Set();
+    subjects.forEach(s => s.components.forEach(c => uniqueComps.add(c)));
+    const comps = Array.from(uniqueComps);
+    if (comps.length === 0) return startY;
+
+    page.drawText('Component Breakdown', {
+        x: startX, y: startY,
+        size: 8, font: fontBold, color: C.primary,
+    });
+
+    let y = startY - 10;
+    const rowH = 12;
+    const subjW = 70;
+    const compW = (width - subjW) / comps.length;
+
+    // Header
+    page.drawRectangle({
+        x: startX, y: y - rowH + 2,
+        width, height: rowH,
+        color: C.primary,
+    });
+    page.drawText('Subj', {
+        x: startX + 2, y: y - rowH + 4,
+        size: 5.5, font: fontBold, color: C.white,
+    });
+
+    comps.forEach((c, i) => {
+        // Shorten long comp strings
+        let lbl = c;
+        if (lbl === 'HALF_YEARLY') lbl = 'HY';
+        else if (lbl === 'HY_THEORY') lbl = 'HY(Th)';
+        else if (lbl === 'HY_PRACTICAL') lbl = 'HY(Pr)';
+        else if (lbl === 'AN_THEORY') lbl = 'AN(Th)';
+        else if (lbl === 'AN_PRACTICAL') lbl = 'AN(Pr)';
+        else if (lbl === 'ANNUAL') lbl = 'AN';
+
+        page.drawText(lbl, {
+            x: startX + subjW + i * compW + 2, y: y - rowH + 4,
+            size: 5.5, font: fontBold, color: C.white,
+        });
+    });
+
+    y -= rowH;
+
+    subjects.forEach((sub, idx) => {
+        if (idx % 2 === 0) {
+            page.drawRectangle({
+                x: startX, y: y - rowH + 2,
+                width, height: rowH,
+                color: C.rowAlt,
+            });
+        }
+
+        // Subject trunc
+        let label = sub.label;
+        if (label.length > 15) label = label.substring(0, 15) + '..';
+
+        page.drawText(label, {
+            x: startX + 2, y: y - rowH + 4,
+            size: 5.5, font, color: C.text,
+        });
+
+        const m = marks[sub.key] || {};
+        comps.forEach((c, i) => {
+            const val = m[c] !== undefined ? String(m[c]) : '-';
+            page.drawText(val, {
+                x: startX + subjW + i * compW + 2, y: y - rowH + 4,
+                size: 5.5, font, color: C.text,
+            });
+        });
+
+        page.drawLine({
+            start: { x: startX, y: y - rowH + 2 },
+            end: { x: startX + width, y: y - rowH + 2 },
+            thickness: 0.2,
+            color: C.border,
+        });
+
+        y -= rowH;
+    });
+
+    return y;
 }
 
 /* ══════════════════════════════════════════════════════════════

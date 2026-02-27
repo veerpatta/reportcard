@@ -71,9 +71,14 @@ app.innerHTML = `
 
     <!-- ═══ Step 2: Configure ═══ -->
     <section class="card hidden" id="config-card">
-      <div class="card__header">
-        <span class="card__step">2</span>
-        <h2 class="card__title">Configure</h2>
+      <div class="card__header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div>
+          <span class="card__step">2</span>
+          <h2 class="card__title" style="display: inline-block;">Configure</h2>
+        </div>
+        <button id="manage-subjects-btn" class="btn btn--sm" style="border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); font-size: 0.8rem; padding: 4px 8px;">
+          Manage Subjects
+        </button>
       </div>
       <div class="card__body">
         <div class="config-grid" id="config-grid">
@@ -132,15 +137,60 @@ app.innerHTML = `
       <summary class="errors-panel__summary">
         <span class="errors-panel__badge" id="error-count">0</span> Validation Errors
       </summary>
-      <div class="errors-panel__body" id="errors-list"></div>
+      <div class="errors-panel__body" id="errors-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
     </details>
 
     <details class="warnings-panel hidden" id="warnings-panel">
       <summary class="warnings-panel__summary">
         <span class="warnings-panel__badge" id="warning-count">0</span> Warnings
       </summary>
-      <div class="warnings-panel__body" id="warnings-list"></div>
+      <div class="warnings-panel__body" id="warnings-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
     </details>
+
+    <!-- ═══ Manage Subjects Modal ═══ -->
+    <dialog id="manage-subjects-modal" style="border: none; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); padding: 0; max-width: 500px; width: 90%;">
+      <div style="padding: 1.5rem; border-bottom: 1px solid var(--border);">
+        <h3 style="margin: 0; color: var(--text);">Manage Custom Subjects</h3>
+        <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: var(--text-light);">Add future-proof subjects to the active template constraints.</p>
+      </div>
+      <div style="padding: 1.5rem; max-height: 50vh; overflow-y: auto;" id="custom-subjects-list"></div>
+      
+      <div style="padding: 1.5rem; border-top: 1px solid var(--border); background: var(--bg-body);">
+        <h4 style="margin: 0 0 1rem 0; font-size: 0.9rem;">Add New</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-size: 0.8rem;">Label</label>
+            <input type="text" id="custom-sub-label" class="form-input" placeholder="e.g. Computer Science" style="padding: 0.4rem;" />
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-size: 0.8rem;">Excel Prefix</label>
+            <input type="text" id="custom-sub-prefix" class="form-input" placeholder="e.g. CS" style="padding: 0.4rem; text-transform: uppercase;" />
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-size: 0.8rem;">Type</label>
+            <select id="custom-sub-type" class="form-select" style="padding: 0.4rem;">
+              <option value="theory">Theory-only</option>
+              <option value="practical">Theory + Practical</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label class="form-label" style="font-size: 0.8rem;">Choice Group <span style="font-size: 0.7rem;">(optional)</span></label>
+            <input type="text" id="custom-sub-group" class="form-input" placeholder="e.g. sci_elective" style="padding: 0.4rem;" />
+          </div>
+        </div>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer;">
+          <input type="checkbox" id="custom-sub-optional" checked /> Is Optional Subject?
+        </label>
+        <button id="add-custom-subject-btn" class="btn btn--secondary" style="margin-top: 1rem; width: 100%; justify-content: center;">+ Add Subject</button>
+      </div>
+
+      <div style="padding: 1rem 1.5rem; text-align: right; border-top: 1px solid var(--border); display: flex; justify-content: space-between;">
+        <button id="reset-custom-subjects-btn" class="btn" style="color: var(--danger); background: transparent;">Reset All</button>
+        <button id="close-modal-btn" class="btn btn--primary">Done</button>
+      </div>
+    </dialog>
 
     <!-- ═══ Step 3: Preview ═══ -->
     <section class="card hidden" id="preview-card">
@@ -286,6 +336,13 @@ const generateBtn = $('#generate-btn');
 const downloadActionContainer = $('#download-action-container');
 const downloadPdfBtn = $('#download-pdf-btn');
 
+const manageSubjectsBtn = $('#manage-subjects-btn');
+const subjectsModal = $('#manage-subjects-modal');
+const closeModalBtn = $('#close-modal-btn');
+const addSubjectBtn = $('#add-custom-subject-btn');
+const resetSubjectsBtn = $('#reset-custom-subjects-btn');
+const customSubjectsList = $('#custom-subjects-list');
+
 /* ══════════════════════════════════════════════════════════
    Events
    ══════════════════════════════════════════════════════════ */
@@ -319,6 +376,95 @@ templateSelect.addEventListener('change', (e) => {
 });
 parseBtn.addEventListener('click', runParse);
 generateBtn.addEventListener('click', runGenerate);
+
+import { theoryComponents, theoryComponentMax, practicalComponents, practicalComponentMax } from './src/config/templates.js';
+
+manageSubjectsBtn.addEventListener('click', () => {
+  renderCustomSubjectsList();
+  subjectsModal.showModal();
+});
+
+closeModalBtn.addEventListener('click', () => {
+  subjectsModal.close();
+  activeTemplate = getTemplateById(activeTemplateId); // Re-fetch augmented template on close
+  showStatus('info', 'Template augmented with custom subjects. Download new Sample Excel or Parse.');
+});
+
+resetSubjectsBtn.addEventListener('click', () => {
+  if (confirm("Are you sure you want to remove all custom subjects from this template?")) {
+    localStorage.removeItem(`vpps_custom_subjects_${activeTemplateId}`);
+    renderCustomSubjectsList();
+  }
+});
+
+addSubjectBtn.addEventListener('click', () => {
+  const lbl = document.getElementById('custom-sub-label').value.trim();
+  const rawPrefix = document.getElementById('custom-sub-prefix').value.trim();
+  const prefix = rawPrefix.toUpperCase().replace(/[^A-Z0-9_]/g, '');
+  const type = document.getElementById('custom-sub-type').value;
+  const isOptional = document.getElementById('custom-sub-optional').checked;
+  const grp = document.getElementById('custom-sub-group').value.trim();
+
+  if (!lbl || !prefix) {
+    alert("Label and Prefix are required.");
+    return;
+  }
+
+  const newSubject = {
+    key: prefix.toLowerCase(),
+    label: lbl,
+    maxMarks: 200,
+    components: type === 'theory' ? theoryComponents : practicalComponents,
+    componentMax: type === 'theory' ? theoryComponentMax : practicalComponentMax,
+  };
+
+  if (isOptional) newSubject.optional = true;
+  if (grp) newSubject.choiceGroup = grp;
+
+  const stored = localStorage.getItem(`vpps_custom_subjects_${activeTemplateId}`);
+  const list = stored ? JSON.parse(stored) : [];
+  list.push(newSubject);
+  localStorage.setItem(`vpps_custom_subjects_${activeTemplateId}`, JSON.stringify(list));
+
+  document.getElementById('custom-sub-label').value = '';
+  document.getElementById('custom-sub-prefix').value = '';
+  document.getElementById('custom-sub-group').value = '';
+
+  renderCustomSubjectsList();
+});
+
+function renderCustomSubjectsList() {
+  const stored = localStorage.getItem(`vpps_custom_subjects_${activeTemplateId}`);
+  const list = stored ? JSON.parse(stored) : [];
+  if (list.length === 0) {
+    customSubjectsList.innerHTML = `<p style="color: var(--text-light); text-align: center; margin: 0; font-size: 0.9rem;">No custom subjects added.</p>`;
+    return;
+  }
+
+  customSubjectsList.innerHTML = list.map((sub, idx) => `
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-hover); border-radius: 6px; margin-bottom: 8px;">
+      <div>
+        <strong>${sub.label}</strong> <span style="font-size: 0.75rem; color: var(--text-light);">(${sub.key.toUpperCase()})</span>
+        <div style="font-size: 0.8rem; color: var(--text-light); margin-top: 4px;">
+          Type: ${sub.components.length === 5 ? 'Theory' : 'Practical'}
+          ${sub.optional ? ' | Optional' : ''}
+          ${sub.choiceGroup ? ` | Group: ${sub.choiceGroup}` : ''}
+        </div>
+      </div>
+      <button class="btn-icon" onclick="removeCustomSubject(${idx})" title="Remove" style="color: var(--danger);">✕</button>
+    </div>
+  `).join('');
+}
+
+window.removeCustomSubject = function (idx) {
+  const stored = localStorage.getItem(`vpps_custom_subjects_${activeTemplateId}`);
+  if (stored) {
+    const list = JSON.parse(stored);
+    list.splice(idx, 1);
+    localStorage.setItem(`vpps_custom_subjects_${activeTemplateId}`, JSON.stringify(list));
+    renderCustomSubjectsList();
+  }
+};
 
 /* ══════════════════════════════════════════════════════════
    File Upload Handler
@@ -435,23 +581,59 @@ function renderErrorsPanels() {
     errorsPanel.classList.remove('hidden');
     errorsPanel.open = true;
     $('#error-count').textContent = parseErrors.length;
-    $('#errors-list').innerHTML = parseErrors.map(e => `
-      <div class="error-item">
-        <span class="error-item__row">Row ${e.row}</span>
-        <span class="error-item__field">${e.field}</span>
-        <span class="error-item__msg">${e.message}</span>
-      </div>`).join('');
+
+    // Group by Row
+    const grouped = {};
+    parseErrors.forEach(e => {
+      const g = e.row || 'Global';
+      if (!grouped[g]) grouped[g] = [];
+      grouped[g].push(e);
+    });
+
+    $('#errors-list').innerHTML = Object.entries(grouped).map(([row, errs]) => `
+      <details class="row-group" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">
+        <summary style="padding: 8px 12px; background: var(--bg-hover); cursor: pointer; font-weight: 500; font-size: 0.85rem; border-bottom: 1px solid var(--border);">
+          Row ${row} <span style="float: right; color: var(--danger);">${errs.length} errors</span>
+        </summary>
+        <div style="padding: 12px;">
+          ${errs.map(e => `
+            <div class="error-item" style="margin-bottom: 8px; font-size: 0.85rem;">
+              <span class="error-item__field" style="font-weight: bold; color: var(--text);">${e.field}:</span>
+              <span class="error-item__msg" style="color: var(--danger);">${e.message}</span>
+            </div>
+          `).join('')}
+        </div>
+      </details>
+    `).join('');
   }
 
   if (parseWarnings.length) {
     warningsPanel.classList.remove('hidden');
     $('#warning-count').textContent = parseWarnings.length;
-    $('#warnings-list').innerHTML = parseWarnings.map(w => `
-      <div class="warning-item">
-        <span class="warning-item__row">Row ${w.row}</span>
-        <span class="warning-item__field">${w.field}</span>
-        <span class="warning-item__msg">${w.message}</span>
-      </div>`).join('');
+
+    // Group Warnings too
+    const groupedW = {};
+    parseWarnings.forEach(w => {
+      const g = w.row || 'Global';
+      if (!groupedW[g]) groupedW[g] = [];
+      groupedW[g].push(w);
+    });
+
+    $('#warnings-list').innerHTML = Object.entries(groupedW).map(([row, warns]) => `
+      <details class="row-group" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; overflow: hidden;">
+        <summary style="padding: 8px 12px; background: var(--bg-hover); cursor: pointer; font-weight: 500; font-size: 0.85rem; border-bottom: 1px solid var(--border);">
+          Row ${row} <span style="float: right; color: var(--warning);">${warns.length} warnings</span>
+        </summary>
+        <div style="padding: 12px;">
+          ${warns.map(w => `
+            <div class="warning-item" style="margin-bottom: 8px; font-size: 0.85rem;">
+              <span class="warning-item__field" style="font-weight: bold; color: var(--text);">${w.field}:</span>
+              <span class="warning-item__msg" style="color: var(--warning);">${w.message}</span>
+            </div>
+          `).join('')}
+        </div>
+      </details>
+    `).join('');
   }
 }
 

@@ -27,13 +27,13 @@ const commonGrading = {
     ],
 };
 
-const theoryComponents = ["UT1", "UT2", "UT3", "HALF_YEARLY", "ANNUAL"];
-const theoryComponentMax = { UT1: 10, UT2: 10, UT3: 10, HALF_YEARLY: 70, ANNUAL: 100 };
+export const theoryComponents = ["UT1", "UT2", "UT3", "HALF_YEARLY", "ANNUAL"];
+export const theoryComponentMax = { UT1: 10, UT2: 10, UT3: 10, HALF_YEARLY: 70, ANNUAL: 100 };
 
-const practicalComponents = ["UT1", "UT2", "UT3", "HY_THEORY", "HY_PRACTICAL", "AN_THEORY", "AN_PRACTICAL"];
-const practicalComponentMax = { UT1: 10, UT2: 10, UT3: 10, HY_THEORY: 50, HY_PRACTICAL: 20, AN_THEORY: 70, AN_PRACTICAL: 30 };
+export const practicalComponents = ["UT1", "UT2", "UT3", "HY_THEORY", "HY_PRACTICAL", "AN_THEORY", "AN_PRACTICAL"];
+export const practicalComponentMax = { UT1: 10, UT2: 10, UT3: 10, HY_THEORY: 50, HY_PRACTICAL: 20, AN_THEORY: 70, AN_PRACTICAL: 30 };
 
-function generateColumnMappings(subjects) {
+export function generateColumnMappings(subjects) {
     const mappings = {};
     subjects.forEach((subj) => {
         mappings[subj.key] = {};
@@ -132,4 +132,34 @@ export const TEMPLATES = templatesConfig.map(tmpl => {
 
 export const DEFAULT_TEMPLATE_ID = "class9";
 
-export const getTemplateById = (id) => TEMPLATES.find((t) => t.id === id) || TEMPLATES.find((t) => t.id === DEFAULT_TEMPLATE_ID);
+function applyCustomSubjects(baseTemplate) {
+    if (!baseTemplate) return null;
+    try {
+        const stored = localStorage.getItem(`vpps_custom_subjects_${baseTemplate.id}`);
+        if (stored) {
+            const customSubjects = JSON.parse(stored);
+            if (customSubjects && customSubjects.length > 0) {
+                // Return a deep cloned and augmented array rather than mutating the exported base
+                const tmpl = JSON.parse(JSON.stringify(baseTemplate));
+                tmpl.subjects.push(...customSubjects);
+                // Regenerate mappings to include custom
+                tmpl.columnMappings = generateColumnMappings(tmpl.subjects);
+                // Automatically patch in Choice Groups if they don't exist in base schema but referenced
+                customSubjects.forEach(s => {
+                    if (s.choiceGroup && !tmpl.choiceGroups[s.choiceGroup]) {
+                        tmpl.choiceGroups[s.choiceGroup] = { min: 1, max: 1, label: `Custom Elective (${s.choiceGroup})` };
+                    }
+                });
+                return tmpl;
+            }
+        }
+    } catch (e) {
+        console.warn('Could not parse custom subjects from localStorage:', e);
+    }
+    return baseTemplate;
+}
+
+export const getTemplateById = (id) => {
+    const base = TEMPLATES.find((t) => t.id === id) || TEMPLATES.find((t) => t.id === DEFAULT_TEMPLATE_ID);
+    return applyCustomSubjects(base);
+};
