@@ -12,7 +12,7 @@
  *   renderReportCards(students, subjects, onProgress) → triggers .pdf download
  */
 
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib';
 import { makeChartsForStudent } from '../charts/makeCharts.js';
 
 /* ── Constants ──────────────────────────────────────────────── */
@@ -233,7 +233,7 @@ function drawWatermark(page, fontBold) {
         font: fontBold,
         color: rgb(0.95, 0.95, 0.96),
         opacity: 0.15,
-        rotate: import('pdf-lib').then(p => p.degrees(0)) // No rotation for cleaner look
+        rotate: degrees(0) // No rotation for cleaner look
     });
 }
 
