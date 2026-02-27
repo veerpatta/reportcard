@@ -491,7 +491,13 @@ export function generateSampleTemplate(template) {
     const infoCount = Object.keys(template.studentFields).length;
 
     // Freeze up to STUDENT_NAME (Usually column 3) to prevent losing track while scrolling right
-    ws['!views'] = [{ state: 'frozen', xSplit: 3, ySplit: 1 }];
+    ws['!views'] = [{
+        state: 'frozen',
+        xSplit: 3,
+        ySplit: 1,
+        topLeftCell: 'D2',
+        activePane: 'bottomRight'
+    }];
 
     // Optimize column widths for tight horizontal scrolling!
     ws['!cols'] = cols.map((c, i) => {
@@ -502,18 +508,19 @@ export function generateSampleTemplate(template) {
         return { wch: 8 };
     });
 
-    // Bold top row & Wrap text so narrow headers still readable
+    // Bold top row, Wrap text so narrow headers still readable, and try to add a background color
     for (let C = 0; C < cols.length; ++C) {
         const addr = XLSX.utils.encode_cell({ r: 0, c: C });
         if (!ws[addr]) continue;
         ws[addr].s = {
             font: { bold: true },
-            alignment: { wrapText: true, vertical: "center", horizontal: "center" }
+            alignment: { wrapText: true, vertical: "center", horizontal: "center" },
+            fill: { patternType: "solid", fgColor: { rgb: "E2EFD9" } } // Pale green header highlight (if supported by the XLSX build)
         };
     }
 
-    // Set row height of header so wrapped text fits
-    ws['!rows'] = [{ hpt: 35 }];
+    // Increase row height of header even further for visibility
+    ws['!rows'] = [{ hpt: 60 }];
 
     XLSX.utils.book_append_sheet(wb, ws, template.sheetName || "details");
 
