@@ -1,3 +1,4 @@
+import './style.css';
 import { getSheetNames, parseExcel, generateSampleTemplate } from './src/excelParser.js';
 import { TEMPLATES, getTemplateById, DEFAULT_TEMPLATE_ID } from './src/config/templates.js';
 import { renderReportCardFront, renderReportCardBack } from './src/ui/reportCardPreview.js';
