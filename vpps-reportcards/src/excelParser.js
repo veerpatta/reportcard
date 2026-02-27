@@ -128,9 +128,10 @@ export async function parseExcel(file, template, sheetOverride) {
         const student = { _row: rowNum, info: {}, marks: {}, computed: {} };
         let rowHasError = false;
 
-        // ── A. Student info fields ──────────────────────────
+        // ── A. Student info & Co-Scholastic fields ──────────
         let missingRequiredCols = [];
-        for (const [fieldKey, fieldDef] of Object.entries(template.studentFields)) {
+        const allInfoFields = { ...template.studentFields, ...(template.coScholasticFields || {}) };
+        for (const [fieldKey, fieldDef] of Object.entries(allInfoFields)) {
             const colHeader = fieldDef.excelHeader;
             const colIdx = headerIndex[colHeader.toLowerCase()];
 
@@ -423,6 +424,14 @@ export function generateSampleTemplate(template) {
         }
     }
 
+    // Co-Scholastic columns (appended at the very end!)
+    if (template.coScholasticFields) {
+        for (const field of Object.values(template.coScholasticFields)) {
+            cols.push(field.excelHeader);
+        }
+    }
+    // Dummy check removed
+
     // Sample data rows
     const data = [cols];
 
@@ -440,12 +449,6 @@ export function generateSampleTemplate(template) {
         row.push("2024-25"); // SESSION
         row.push(195); // ATTEND_PRESENT
         row.push(200); // ATTEND_TOTAL
-
-        row.push("A"); // CO_WORK_ED
-        row.push("A"); // CO_ART_ED
-        row.push("A"); // CO_HEALTH_ED
-        row.push("A"); // CO_DISCIPLINE
-
         for (const subject of template.subjects) {
             if (subject.optional && !optionalChoices.includes(subject.key)) {
                 // leave blank
@@ -459,6 +462,15 @@ export function generateSampleTemplate(template) {
                 }
             }
         }
+
+        // Add Co-Scholastic dummy data
+        if (template.coScholasticFields) {
+            row.push("A"); // CO_WORK_ED
+            row.push("A"); // CO_ART_ED
+            row.push("A"); // CO_HEALTH_ED
+            row.push("A"); // CO_DISCIPLINE
+        }
+
         return row;
     }
 
@@ -476,18 +488,32 @@ export function generateSampleTemplate(template) {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(data);
 
-    // Make columns wider
-    ws['!cols'] = cols.map(c => ({ wch: Math.max(c.length + 2, 12) }));
+    const infoCount = Object.keys(template.studentFields).length;
 
-    // Bold top row
+    // Freeze up to STUDENT_NAME (Usually column 3) to prevent losing track while scrolling right
+    ws['!views'] = [{ state: 'frozen', xSplit: 3, ySplit: 1 }];
+
+    // Optimize column widths for tight horizontal scrolling!
+    ws['!cols'] = cols.map((c, i) => {
+        if (i < infoCount) {
+            return { wch: Math.max(c.length + 2, 12) }; // normal width for info
+        }
+        // Narrow widths for subject marks to fit more on screen
+        return { wch: 8 };
+    });
+
+    // Bold top row & Wrap text so narrow headers still readable
     for (let C = 0; C < cols.length; ++C) {
         const addr = XLSX.utils.encode_cell({ r: 0, c: C });
         if (!ws[addr]) continue;
-        ws[addr].s = { font: { bold: true } };
+        ws[addr].s = {
+            font: { bold: true },
+            alignment: { wrapText: true, vertical: "center", horizontal: "center" }
+        };
     }
 
-    // Freeze top row
-    ws['!views'] = [{ state: 'frozen', xSplit: 0, ySplit: 1 }];
+    // Set row height of header so wrapped text fits
+    ws['!rows'] = [{ hpt: 35 }];
 
     XLSX.utils.book_append_sheet(wb, ws, template.sheetName || "details");
 

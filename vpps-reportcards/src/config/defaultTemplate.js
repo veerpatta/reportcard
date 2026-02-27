@@ -26,6 +26,13 @@ const defaultTemplate = {
         attendTotal: { label: "Attendance Total", excelHeader: "ATTEND_TOTAL", type: "number" },
     },
 
+    coScholasticFields: {
+        coWorkEd: { label: "Work Education Grade", excelHeader: "CO_WORK_ED", type: "string" },
+        coArtEd: { label: "Art Education Grade", excelHeader: "CO_ART_ED", type: "string" },
+        coHealthEd: { label: "Health & PE Grade", excelHeader: "CO_HEALTH_ED", type: "string" },
+        coDiscipline: { label: "Discipline Grade", excelHeader: "CO_DISCIPLINE", type: "string" },
+    },
+
     /* ── Subjects ────────────────────────────────────────────── */
     subjects: [
         { key: "english", label: "English", maxMarks: 100, components: ["theory", "practical"] },
