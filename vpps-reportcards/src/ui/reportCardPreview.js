@@ -22,7 +22,7 @@ export function renderReportCardFront(container, student, subjects) {
         <img src="${import.meta.env.BASE_URL}logo.png" alt="VPPS" class="rc__logo" />
         <div class="rc__school-info">
           <h2 class="rc__school-name">Veer Patta Senior Secondary School</h2>
-          <p class="rc__school-sub">Affiliated to CBSE, New Delhi</p>
+          <p class="rc__school-sub">Affiliated to Rajasthan Education Board</p>
           <p class="rc__school-sub rc__school-sub--sm">Session: ${info.session || '—'}</p>
         </div>
       </div>
