@@ -308,7 +308,7 @@ app.innerHTML = `
   </main>
 
   <footer class="app-footer">
-    <p>Veer Patta Public School &copy; ${new Date().getFullYear()} &mdash; Report Card Generator</p>
+    <p>Veer Patta Senior Secondary School &copy; ${new Date().getFullYear()} &mdash; Report Card Generator</p>
   </footer>
 `;
 

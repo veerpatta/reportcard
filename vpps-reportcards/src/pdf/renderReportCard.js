@@ -183,12 +183,12 @@ async function drawBackPage(ctx, student, barImage, radarImage) {
 
     // ── Mini header ──
     y = drawMiniHeader(page, fontBold, font, logoImage, info, y);
-    y -= 10;
+    y -= 15;
 
     // ── Marks table (left half) ──
-    const tableW = CONTENT_W * 0.52;
-    const chartX = MARGIN + tableW + 20;
-    const chartW = CONTENT_W - tableW - 20;
+    const tableW = CONTENT_W * 0.58;
+    const chartX = MARGIN + tableW + 24;
+    const chartW = CONTENT_W - tableW - 24;
 
     const drawSubjects = computed.subjects && computed.subjects.length > 0 ? computed.subjects : subjects;
 
@@ -196,27 +196,31 @@ async function drawBackPage(ctx, student, barImage, radarImage) {
         MARGIN, y, tableW);
 
     // ── Charts section (right half) ──
-    const chartAreaH = y - tableBottom;
-    // Compress chart slightly to leave room for the Component Breakdown
+    const chartAreaH = y - tableBottom + 40; // use a bit more space
     const chartRoomH = chartAreaH * 0.55;
-    const halfChartH = Math.max((chartRoomH - 28) / 2, 70);
+    const halfChartH = Math.max((chartRoomH - 28) / 2, 75);
 
     // Bar chart (Chart.js rendered PNG)
     const barBottom = embedChartImage(page, barImage, chartX, y, chartW, halfChartH,
         null, fontBold);
 
     // Radar chart (Chart.js rendered PNG)
-    const radarBottom = embedChartImage(page, radarImage, chartX, barBottom - 14, chartW, halfChartH,
+    const radarBottom = embedChartImage(page, radarImage, chartX, barBottom - 18, chartW, halfChartH,
         null, fontBold);
 
     // ── Component Breakdown Table (Bottom Right) ──
     const bkdTableY = radarBottom - 16;
     drawComponentBreakdown(page, font, fontBold, marks, drawSubjects, chartX, bkdTableY, chartW);
 
-    // ── Teacher remarks box ──
+    // ── Co-Scholastic & Remarks (left bottom) ──
     // Place remarks below the main Marks Table (bottom left)
-    const remarksY = tableBottom - 14;
-    drawRemarksBox(page, font, fontBold, remarksY, tableW);
+    const remarksY = tableBottom - 20;
+
+    // Draw Co-scholastic & Attendance block
+    const blockY = drawCoScholasticAndAttendance(page, font, fontBold, info, computed, MARGIN, remarksY, tableW);
+
+    // Teacher Remarks below that
+    drawRemarksBox(page, font, fontBold, blockY - 15, tableW);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -305,7 +309,7 @@ function drawFailedCallout(page, fontBold, font, failedSubjects, y) {
    HELPER — drawHeader()
    ══════════════════════════════════════════════════════════════ */
 function drawHeader(page, fontBold, font, logoImage, y) {
-    const logoSize = 52;
+    const logoSize = 65;
     if (logoImage) {
         page.drawImage(logoImage, {
             x: MARGIN,
@@ -316,47 +320,47 @@ function drawHeader(page, fontBold, font, logoImage, y) {
     }
 
     // School name — centered between logo-right and page-right
-    const textBlockX = MARGIN + logoSize + 10;
-    const schoolName = 'Veer Patta Public School';
-    const nameSize = 17;
+    const textBlockX = MARGIN + logoSize + 15;
+    const schoolName = 'Veer Patta Senior Secondary School';
+    const nameSize = 19;
     const nameW = fontBold.widthOfTextAtSize(schoolName, nameSize);
     const centerX = (PAGE_W - nameW) / 2;
     page.drawText(schoolName, {
         x: Math.max(textBlockX, centerX),
-        y: y - 16,
+        y: y - 18,
         size: nameSize,
         font: fontBold,
         color: C.primary,
     });
 
     const address = 'Kelwa Road, Amet, District Rajsamand, Rajasthan';
-    const addrW = font.widthOfTextAtSize(address, 8.5);
+    const addrW = font.widthOfTextAtSize(address, 9.5);
     page.drawText(address, {
         x: (PAGE_W - addrW) / 2,
-        y: y - 30,
-        size: 8.5,
+        y: y - 34,
+        size: 9.5,
         font,
         color: C.textLight,
     });
 
     const tagline = 'Affiliated to CBSE, New Delhi';
-    const tagW = font.widthOfTextAtSize(tagline, 7.5);
+    const tagW = font.widthOfTextAtSize(tagline, 8.5);
     page.drawText(tagline, {
         x: (PAGE_W - tagW) / 2,
-        y: y - 42,
-        size: 7.5,
+        y: y - 48,
+        size: 8.5,
         font,
         color: C.textLight,
     });
 
-    return y - logoSize - 6;
+    return y - logoSize - 8;
 }
 
 /* ══════════════════════════════════════════════════════════════
    HELPER — drawMiniHeader()   (used on Back page)
    ══════════════════════════════════════════════════════════════ */
 function drawMiniHeader(page, fontBold, font, logoImage, info, y) {
-    const logoSize = 32;
+    const logoSize = 42;
     if (logoImage) {
         page.drawImage(logoImage, {
             x: MARGIN,
@@ -366,24 +370,24 @@ function drawMiniHeader(page, fontBold, font, logoImage, info, y) {
         });
     }
 
-    page.drawText('Veer Patta Public School', {
-        x: MARGIN + logoSize + 8,
-        y: y - 13,
-        size: 12,
+    page.drawText('Veer Patta Senior Secondary School', {
+        x: MARGIN + logoSize + 12,
+        y: y - 16,
+        size: 14,
         font: fontBold,
         color: C.primary,
     });
 
     const subLine = `Session: ${info.session || '-'}  |  ${info.name || ''}  |  Class: ${info.class || '-'}`;
     page.drawText(subLine, {
-        x: MARGIN + logoSize + 8,
-        y: y - 27,
-        size: 7.5,
+        x: MARGIN + logoSize + 12,
+        y: y - 32,
+        size: 8.5,
         font,
         color: C.textLight,
     });
 
-    return y - logoSize - 4;
+    return y - logoSize - 8;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -598,10 +602,10 @@ function embedChartImage(page, image, startX, startY, width, height, title, font
    ══════════════════════════════════════════════════════════════ */
 function drawMarksTable(page, font, fontBold, marks, subjects, computed, tableX, y, tableW) {
     // Column widths proportional to table width
-    const colRatios = [0.30, 0.13, 0.17, 0.12, 0.28]; // Subject, Max, Obtained, Grade, Remarks
+    const colRatios = [0.32, 0.12, 0.16, 0.13, 0.27]; // Subject, Max, Obtained, Grade, Remarks
     const colWidths = colRatios.map(r => r * tableW);
-    const headers = ['Subject', 'Max', 'Obtained', 'Grade', 'Remarks'];
-    const rowH = 16;
+    const headers = ['Subject', 'Max Marks', 'Obtained', 'Grade', 'Remarks'];
+    const rowH = 22; // Larger, more luxurious row height
 
     // Header row
     page.drawRectangle({
@@ -612,8 +616,8 @@ function drawMarksTable(page, font, fontBold, marks, subjects, computed, tableX,
     let cx = tableX;
     headers.forEach((h, i) => {
         page.drawText(h, {
-            x: cx + 4, y: y - rowH + 6,
-            size: 7.5, font: fontBold, color: C.white,
+            x: cx + 8, y: y - rowH + 8,
+            size: 8.5, font: fontBold, color: C.white,
         });
         cx += colWidths[i];
     });
@@ -638,11 +642,11 @@ function drawMarksTable(page, font, fontBold, marks, subjects, computed, tableX,
         cx = tableX;
         const rowData = [sub.label, String(sub.maxMarks), total, grade, remark];
         rowData.forEach((val, i) => {
-            const fs = i === 4 ? 6.5 : 7.5;
+            const fs = i === 4 ? 7.5 : 8.5; // Slightly smaller for remarks
             page.drawText(val, {
-                x: cx + 4, y: y - rowH + 6,
+                x: cx + 8, y: y - rowH + 8,
                 size: fs,
-                font: i === 0 ? font : font,
+                font: i === 0 ? fontBold : font, // Bold subject names
                 color: C.text,
             });
             cx += colWidths[i];
@@ -652,7 +656,7 @@ function drawMarksTable(page, font, fontBold, marks, subjects, computed, tableX,
         page.drawLine({
             start: { x: tableX, y: y - rowH + 2 },
             end: { x: tableX + tableW, y: y - rowH + 2 },
-            thickness: 0.25,
+            thickness: 0.35,
             color: C.border,
         });
 
@@ -660,16 +664,18 @@ function drawMarksTable(page, font, fontBold, marks, subjects, computed, tableX,
     });
 
     // Total row
-    y -= 2;
+    y -= 1;
     page.drawRectangle({
         x: tableX, y: y - rowH + 2,
         width: tableW, height: rowH,
-        color: rgb(0.88, 0.88, 0.94),
+        color: rgb(0.86, 0.88, 0.96),
+        borderColor: C.accent,
+        borderWidth: 0.5,
     });
     cx = tableX;
     const totalMax = computed.maxMarks > 0 ? computed.maxMarks : subjects.reduce((s, sub) => s + sub.maxMarks, 0);
     const totalData = [
-        'TOTAL',
+        'GRAND TOTAL',
         String(totalMax),
         String(computed.totalMarks),
         computed.grade,
@@ -677,8 +683,8 @@ function drawMarksTable(page, font, fontBold, marks, subjects, computed, tableX,
     ];
     totalData.forEach((val, i) => {
         page.drawText(val, {
-            x: cx + 4, y: y - rowH + 6,
-            size: 7.5,
+            x: cx + 8, y: y - rowH + 8,
+            size: 9,
             font: fontBold,
             color: C.primary,
         });
@@ -687,6 +693,73 @@ function drawMarksTable(page, font, fontBold, marks, subjects, computed, tableX,
     y -= rowH;
 
     return y;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HELPER — drawCoScholasticAndAttendance()
+   ══════════════════════════════════════════════════════════════ */
+function drawCoScholasticAndAttendance(page, font, fontBold, info, computed, x, startY, width) {
+    let y = startY;
+
+    // Split space into two halves: Left for Co-scholastic, Right for Result/Attendance
+    const colW = (width - 20) / 2;
+
+    // --- LEFT COLUMN: Co-Scholastic ---
+    page.drawRectangle({ x, y: y - 18, width: colW, height: 18, color: C.primary });
+    page.drawText('Co-Scholastic Areas', { x: x + 8, y: y - 13, size: 8, font: fontBold, color: C.white });
+    y -= 18;
+
+    const areas = ['Work Education', 'Art Education', 'Health & Physical Education', 'Discipline'];
+    areas.forEach((area, idx) => {
+        if (idx % 2 === 0) {
+            page.drawRectangle({ x, y: y - 16, width: colW, height: 16, color: C.rowAlt });
+        }
+        page.drawText(area, { x: x + 8, y: y - 11, size: 7.5, font, color: C.text });
+        page.drawText('A', { x: x + colW - 16, y: y - 11, size: 7.5, font: fontBold, color: C.accent });
+        page.drawLine({ start: { x, y: y - 16 }, end: { x: x + colW, y: y - 16 }, thickness: 0.25, color: C.border });
+        y -= 16;
+    });
+
+    const blockLeftY = y;
+
+    // --- RIGHT COLUMN: Attendance & Result ---
+    y = startY;
+    const rx = x + colW + 20;
+
+    // Attendance
+    page.drawRectangle({ x: rx, y: y - 18, width: colW, height: 18, color: C.primary });
+    page.drawText('Attendance Record', { x: rx + 8, y: y - 13, size: 8, font: fontBold, color: C.white });
+    y -= 18;
+
+    page.drawRectangle({ x: rx, y: y - 22, width: colW, height: 22, borderColor: C.border, borderWidth: 0.5 });
+    page.drawText(`Total Working Days:  ${info.attendTotal || '-'}`, { x: rx + 8, y: y - 14, size: 8, font, color: C.text });
+    page.drawText(`Days Present:  ${info.attendPresent || '-'}`, { x: rx + colW / 2 + 8, y: y - 14, size: 8, font: fontBold, color: C.success });
+    y -= 22;
+
+    y -= 8; // Small gap
+
+    // Overall Result
+    page.drawRectangle({ x: rx, y: y - 18, width: colW, height: 18, color: C.primary });
+    page.drawText('Final Result', { x: rx + 8, y: y - 13, size: 8, font: fontBold, color: C.white });
+    y -= 18;
+
+    page.drawRectangle({ x: rx, y: y - 32, width: colW, height: 32, borderColor: C.border, borderWidth: 0.5, color: rgb(0.97, 0.98, 1) });
+
+    // Status (PASS/FAIL)
+    const isPass = computed.percentage >= 33;
+    const statusText = computed.resultText || (isPass ? 'PASSED' : 'FAILED');
+    page.drawText(`Status:  `, { x: rx + 8, y: y - 14, size: 8.5, font, color: C.textLight });
+    page.drawText(statusText, { x: rx + 40, y: y - 14.5, size: 10, font: fontBold, color: isPass ? C.success : C.danger });
+
+    // Division
+    if (computed.division) {
+        page.drawText(`Division:  `, { x: rx + 8, y: y - 26, size: 8.5, font, color: C.textLight });
+        page.drawText(computed.division, { x: rx + 48, y: y - 26, size: 9, font: fontBold, color: C.primary });
+    }
+
+    const blockRightY = y - 32;
+
+    return Math.min(blockLeftY, blockRightY);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -723,30 +796,30 @@ function drawSignatures(page, font, fontBold, y) {
    HELPER — drawRemarksBox()
    ══════════════════════════════════════════════════════════════ */
 function drawRemarksBox(page, font, fontBold, y, boxW = CONTENT_W) {
-    const boxH = 40;
+    const boxH = 50;
     const boxY = Math.max(y - boxH, MARGIN);
 
     page.drawRectangle({
         x: MARGIN, y: boxY,
         width: boxW, height: boxH,
-        color: rgb(0.97, 0.97, 0.99),
+        color: rgb(0.98, 0.98, 1),
         borderColor: C.border,
-        borderWidth: 0.4,
+        borderWidth: 0.5,
     });
 
     page.drawText("Teacher's Remarks:", {
-        x: MARGIN + 8, y: boxY + boxH - 12,
-        size: 8, font: fontBold, color: C.textLight,
+        x: MARGIN + 10, y: boxY + boxH - 14,
+        size: 9, font: fontBold, color: C.textLight,
     });
 
     // Lines for writing
     for (let i = 1; i <= 2; i++) {
-        const lineY = boxY + boxH - 12 - i * 12;
-        if (lineY > boxY + 4) {
+        const lineY = boxY + boxH - 14 - i * 14;
+        if (lineY > boxY + 6) {
             page.drawLine({
-                start: { x: MARGIN + 8, y: lineY },
-                end: { x: MARGIN + boxW - 8, y: lineY },
-                thickness: 0.3,
+                start: { x: MARGIN + 10, y: lineY },
+                end: { x: MARGIN + boxW - 10, y: lineY },
+                thickness: 0.4,
                 color: C.border,
             });
         }
