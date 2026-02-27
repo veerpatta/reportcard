@@ -50,10 +50,19 @@ app.innerHTML = `
           <input type="file" id="file-input" accept=".xlsx,.xls,.csv" hidden />
         </div>
 
-        <div style="margin-top: 1.25rem;">
-          <button id="download-template-btn" class="btn" style="border: 1px dashed var(--border-accent); background: var(--bg-glass); font-size: 0.85rem; color: var(--text-secondary); width: 100%; justify-content: center; display: flex; align-items: center; transition: all 0.2s;">
+        <div style="margin-top: 1.25rem; background: var(--bg-hover); padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <label for="template-select" class="form-label" style="margin: 0;">1. Select Report Template</label>
+            <button id="manage-subjects-btn" class="btn btn--sm" style="border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); font-size: 0.75rem; padding: 2px 8px;">
+              Manage Subjects
+            </button>
+          </div>
+          <select id="template-select" class="form-select" style="margin-bottom: 0.75rem;">
+            ${TEMPLATES.map(t => `<option value="${t.id}" ${t.id === activeTemplateId ? 'selected' : ''}>${t.label}</option>`).join('')}
+          </select>
+          <button id="download-template-btn" class="btn" style="border: 1px dashed var(--border-accent); background: var(--bg-card); font-size: 0.85rem; color: var(--text-secondary); width: 100%; justify-content: center; display: flex; align-items: center; transition: all 0.2s;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            Download Sample Excel Template
+            2. Download Sample Excel Template
           </button>
         </div>
 
@@ -75,22 +84,11 @@ app.innerHTML = `
       <div class="card__header" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
         <div>
           <span class="card__step">2</span>
-          <h2 class="card__title" style="display: inline-block;">Configure</h2>
+          <h2 class="card__title" style="display: inline-block;">Configure & Parse</h2>
         </div>
-        <button id="manage-subjects-btn" class="btn btn--sm" style="border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); font-size: 0.8rem; padding: 4px 8px;">
-          Manage Subjects
-        </button>
       </div>
       <div class="card__body">
         <div class="config-grid" id="config-grid">
-          <!-- Template selector -->
-          <div class="form-group">
-            <label for="template-select" class="form-label">Report Template</label>
-            <select id="template-select" class="form-select">
-              ${TEMPLATES.map(t => `<option value="${t.id}" ${t.id === activeTemplateId ? 'selected' : ''}>${t.label}</option>`).join('')}
-            </select>
-          </div>
-
           <!-- Sheet selector -->
           <div class="form-group">
             <label for="sheet-select" class="form-label">Sheet Name</label>

@@ -39,7 +39,8 @@ export function generateColumnMappings(subjects) {
         mappings[subj.key] = {};
         const prefix = subj.key.toUpperCase();
         subj.components.forEach((comp) => {
-            mappings[subj.key][comp] = `${prefix}_${comp}`;
+            const maxVal = subj.componentMax ? subj.componentMax[comp] : subj.maxMarks;
+            mappings[subj.key][comp] = `${prefix}_${comp} (Max ${maxVal})`;
         });
     });
     return mappings;
