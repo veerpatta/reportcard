@@ -13,6 +13,7 @@ export function renderReportCardFront(container, student, subjects) {
   const info = student.info;
   const marks = student.marks;
   const computed = student.computed;
+  const renderSubjects = computed.subjects && computed.subjects.length > 0 ? computed.subjects : subjects;
 
   container.innerHTML = `
     <div class="rc rc--front">
@@ -71,7 +72,7 @@ export function renderReportCardFront(container, student, subjects) {
           </tr>
         </thead>
         <tbody>
-          ${subjects.map(sub => {
+          ${renderSubjects.map(sub => {
     const m = marks[sub.key];
     const total = m ? m._total : '—';
     const grade = m ? getSubjectGrade(total, sub.maxMarks) : '—';
@@ -87,7 +88,7 @@ export function renderReportCardFront(container, student, subjects) {
         <tfoot>
           <tr class="rc__total-row">
             <td>Total</td>
-            <td class="rc__td-center">${subjects.reduce((sum, s) => sum + s.maxMarks, 0)}</td>
+            <td class="rc__td-center">${renderSubjects.reduce((sum, s) => sum + s.maxMarks, 0)}</td>
             <td class="rc__td-center">${computed.totalMarks}</td>
             <td class="rc__td-center">${computed.grade}</td>
           </tr>
@@ -153,8 +154,8 @@ export function renderReportCardBack(container, student, subjects) {
         </thead>
         <tbody>
           <tr>
-            <td class="rc__td-center">—</td>
-            <td class="rc__td-center">—</td>
+            <td class="rc__td-center">${info.attendTotal !== undefined && info.attendTotal !== "" ? info.attendTotal : '—'}</td>
+            <td class="rc__td-center">${info.attendPresent !== undefined && info.attendPresent !== "" ? info.attendPresent : '—'}</td>
           </tr>
         </tbody>
       </table>
@@ -163,10 +164,15 @@ export function renderReportCardBack(container, student, subjects) {
       <div class="rc__result-block">
         <div class="rc__result-item">
           <span class="rc__result-label">Result</span>
-          <span class="rc__result-value rc__result-value--${computed.percentage >= 33 ? 'pass' : 'fail'}">
-            ${computed.percentage >= 33 ? 'PASSED' : 'FAILED'}
+          <span class="rc__result-value rc__result-value--${computed.resultText === 'PASSED' ? 'pass' : 'fail'}">
+            ${computed.resultText || (computed.percentage >= 33 ? 'PASSED' : 'FAILED')}
           </span>
         </div>
+        ${computed.division ? `
+        <div class="rc__result-item">
+          <span class="rc__result-label">Division</span>
+          <span class="rc__result-value">${computed.division}</span>
+        </div>` : ''}
         <div class="rc__result-item">
           <span class="rc__result-label">Overall Grade</span>
           <span class="rc__result-value">${computed.grade}</span>

@@ -1,6 +1,5 @@
-import './style.css';
 import { getSheetNames, parseExcel, generateSampleTemplate } from './src/excelParser.js';
-import defaultTemplate from './src/config/defaultTemplate.js';
+import { TEMPLATES, getTemplateById, DEFAULT_TEMPLATE_ID } from './src/config/templates.js';
 import { renderReportCardFront, renderReportCardBack } from './src/ui/reportCardPreview.js';
 import { renderReportCards } from './src/pdf/renderReportCard.js';
 
@@ -10,6 +9,8 @@ let sheetNames = [];
 let parsedStudents = [];
 let parseErrors = [];
 let parseWarnings = [];
+let activeTemplateId = localStorage.getItem('vpps_template_id') || DEFAULT_TEMPLATE_ID;
+let activeTemplate = getTemplateById(activeTemplateId);
 
 /* ── Bootstrap the app ───────────────────────────────────── */
 const app = document.querySelector('#app');
@@ -76,6 +77,14 @@ app.innerHTML = `
       </div>
       <div class="card__body">
         <div class="config-grid" id="config-grid">
+          <!-- Template selector -->
+          <div class="form-group">
+            <label for="template-select" class="form-label">Report Template</label>
+            <select id="template-select" class="form-select">
+              ${TEMPLATES.map(t => `<option value="${t.id}" ${t.id === activeTemplateId ? 'selected' : ''}>${t.label}</option>`).join('')}
+            </select>
+          </div>
+
           <!-- Sheet selector -->
           <div class="form-group">
             <label for="sheet-select" class="form-label">Sheet Name</label>
@@ -265,6 +274,7 @@ const downloadTemplateBtn = $('#download-template-btn');
 const fileInfoBar = $('#file-info-bar');
 const clearBtn = $('#clear-file');
 const configCard = $('#config-card');
+const templateSelect = $('#template-select');
 const sheetSelect = $('#sheet-select');
 const parseBtn = $('#parse-btn');
 const statusBanner = $('#status-banner');
@@ -298,10 +308,15 @@ fileInput.addEventListener('change', (e) => {
 clearBtn.addEventListener('click', resetAll);
 if (downloadTemplateBtn) {
   downloadTemplateBtn.addEventListener('click', () => {
-    generateSampleTemplate(defaultTemplate);
-    showStatus('success', 'Sample template downloaded!');
+    generateSampleTemplate(activeTemplate);
+    showStatus('success', `Sample template downloaded for ${activeTemplate.label}!`);
   });
 }
+templateSelect.addEventListener('change', (e) => {
+  activeTemplateId = e.target.value;
+  localStorage.setItem('vpps_template_id', activeTemplateId);
+  activeTemplate = getTemplateById(activeTemplateId);
+});
 parseBtn.addEventListener('click', runParse);
 generateBtn.addEventListener('click', runGenerate);
 
@@ -323,7 +338,7 @@ async function handleFile(file) {
     sheetNames = await getSheetNames(file);
     sheetSelect.innerHTML = sheetNames
       .map(name =>
-        `<option value="${name}" ${name.toLowerCase() === defaultTemplate.sheetName.toLowerCase() ? 'selected' : ''}>${name}</option>`
+        `<option value="${name}" ${name.toLowerCase() === activeTemplate.sheetName.toLowerCase() ? 'selected' : ''}>${name}</option>`
       )
       .join('');
     configCard.classList.remove('hidden');
@@ -352,8 +367,8 @@ async function runParse() {
   warningsPanel.classList.add('hidden');
 
   try {
-    const sheetOverride = sheetSelect.value;
-    const result = await parseExcel(currentFile, defaultTemplate, sheetOverride);
+    const sheetOverride = sheetSelect.value || activeTemplate.sheetName;
+    const result = await parseExcel(currentFile, activeTemplate, sheetOverride);
 
     // Apply range filter
     const from = parseInt($('#range-from').value) || 1;
@@ -448,7 +463,7 @@ function renderPreview() {
 
   previewCard.classList.remove('hidden');
   const student = parsedStudents[0];
-  const subjects = defaultTemplate.subjects;
+  const subjects = activeTemplate.subjects;
 
   $('#preview-student-info').textContent = student.info.name || 'Student #1';
   renderReportCardFront($('#rc-front'), student, subjects);
@@ -495,7 +510,7 @@ async function runGenerate() {
     if (validStudents.length === 0) {
       throw new Error("No valid students without errors found to generate PDF.");
     }
-    const blob = await renderReportCards(validStudents, defaultTemplate.subjects, (current, total) => {
+    const blob = await renderReportCards(validStudents, activeTemplate.subjects, (current, total) => {
       const pct = Math.round((current / total) * 100);
       progressFill.style.width = `${pct}%`;
       progressText.textContent = `Student ${current}/${total}`;

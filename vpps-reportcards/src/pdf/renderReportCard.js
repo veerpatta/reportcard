@@ -141,7 +141,8 @@ async function drawFrontPage(ctx, student, barImage) {
     y -= 12;
 
     // ── 5. Insights box ──
-    y = drawInsightsBox(page, font, fontBold, marks, subjects, y);
+    const drawSubjects = computed.subjects && computed.subjects.length > 0 ? computed.subjects : subjects;
+    y = drawInsightsBox(page, font, fontBold, marks, drawSubjects, y);
     y -= 12;
 
     // ── 6. Bar chart (Chart.js rendered PNG) ──
@@ -174,7 +175,9 @@ async function drawBackPage(ctx, student, barImage, radarImage) {
     const chartX = MARGIN + tableW + 20;
     const chartW = CONTENT_W - tableW - 20;
 
-    const tableBottom = drawMarksTable(page, font, fontBold, marks, subjects, computed,
+    const drawSubjects = computed.subjects && computed.subjects.length > 0 ? computed.subjects : subjects;
+
+    const tableBottom = drawMarksTable(page, font, fontBold, marks, drawSubjects, computed,
         MARGIN, y, tableW);
 
     // ── Charts section (right half) ──
@@ -323,13 +326,18 @@ function drawSummaryTiles(page, font, fontBold, computed, y) {
     const gap = 10;
     const tileColors = [C.tileBlue, C.tileGreen, C.tileOrange, C.tilePurple];
 
-    const resultText = computed.percentage >= 33 ? 'PASSED' : 'FAILED';
+    let resultTextRaw = computed.resultText || (computed.percentage >= 33 ? 'PASSED' : 'FAILED');
+    const resultText = computed.division ? `${resultTextRaw} (${computed.division})` : resultTextRaw;
+
+    const attendStr = (computed.info && computed.info.attendTotal)
+        ? `${computed.info.attendPresent || 0}/${computed.info.attendTotal}`
+        : '-';
 
     const tiles = [
         { label: 'Total Marks', value: String(computed.totalMarks) },
         { label: 'Percentage', value: `${computed.percentage}%` },
         { label: 'Division/Result', value: resultText },
-        { label: 'Attendance', value: '-' },
+        { label: 'Attendance', value: attendStr },
     ];
 
     const tileY = y - tileH;
@@ -555,7 +563,7 @@ function drawMarksTable(page, font, fontBold, marks, subjects, computed, tableX,
         color: rgb(0.88, 0.88, 0.94),
     });
     cx = tableX;
-    const totalMax = subjects.reduce((s, sub) => s + sub.maxMarks, 0);
+    const totalMax = computed.maxMarks > 0 ? computed.maxMarks : subjects.reduce((s, sub) => s + sub.maxMarks, 0);
     const totalData = [
         'TOTAL',
         String(totalMax),

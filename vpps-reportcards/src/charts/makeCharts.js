@@ -319,8 +319,12 @@ export function makeChartsForStudent(student, subjects, opts = {}) {
         radarHeight = 480,
     } = opts;
 
-    const barPng = renderBarChart(student.marks, subjects, barWidth, barHeight);
-    const radarPng = renderRadarChart(student.marks, subjects, radarWidth, radarHeight);
+    const drawSubjects = student.computed && student.computed.subjects && student.computed.subjects.length > 0
+        ? student.computed.subjects
+        : subjects;
+
+    const barPng = renderBarChart(student.marks, drawSubjects, barWidth, barHeight);
+    const radarPng = renderRadarChart(student.marks, drawSubjects, radarWidth, radarHeight);
 
     return { barPng, radarPng };
 }

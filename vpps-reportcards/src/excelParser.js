@@ -129,17 +129,13 @@ export async function parseExcel(file, template, sheetOverride) {
         let rowHasError = false;
 
         // ── A. Student info fields ──────────────────────────
+        let missingRequiredCols = [];
         for (const [fieldKey, fieldDef] of Object.entries(template.studentFields)) {
             const colHeader = fieldDef.excelHeader;
             const colIdx = headerIndex[colHeader.toLowerCase()];
 
             if (colIdx === undefined) {
-                errors.push({
-                    row: rowNum,
-                    field: fieldKey,
-                    message: `Column "${colHeader}" not found in headers.`,
-                });
-                rowHasError = true;
+                missingRequiredCols.push(colHeader);
                 continue;
             }
 
@@ -175,9 +171,23 @@ export async function parseExcel(file, template, sheetOverride) {
             student.info[fieldKey] = value;
         }
 
+        if (missingRequiredCols.length > 0) {
+            errors.push({
+                row: rowNum,
+                field: "info",
+                message: `Missing required columns: ${missingRequiredCols.join(", ")}`,
+            });
+            rowHasError = true;
+            // Skip further processing for this row if headers are badly broken
+            students.push(student);
+            return;
+        }
+
         // ── B. Subject marks ────────────────────────────────
         let grandTotal = 0;
         let grandMax = 0;
+        let selectedSubjects = [];
+        let groupCounts = {};
 
         for (const subject of template.subjects) {
             const mapping = template.columnMappings[subject.key];
@@ -192,79 +202,103 @@ export async function parseExcel(file, template, sheetOverride) {
 
             const subjectMarks = {};
             let subjectTotal = 0;
+            let allBlank = true;
+            let componentErrors = [];
+            let componentWarnings = [];
+            let hasComponentError = false;
 
+            // First pass to see if all components are completely blank
             for (const component of subject.components) {
                 const colHeader = mapping[component];
+                const colIdx = headerIndex[colHeader?.toLowerCase()];
+                if (colIdx !== undefined) {
+                    let raw = row[colIdx];
+                    if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
+                        allBlank = false;
+                        break;
+                    }
+                }
+            }
+
+            // Optional subject skipping logic
+            if (subject.optional && allBlank) {
+                continue; // Do not include in totals, warnings, or computations
+            }
+            if (!subject.optional && allBlank) {
+                errors.push({
+                    row: rowNum,
+                    field: subject.key,
+                    message: `Required subject "${subject.label}" is completely blank.`,
+                });
+                rowHasError = true;
+                continue;
+            }
+
+            selectedSubjects.push(subject);
+            if (subject.choiceGroup) {
+                groupCounts[subject.choiceGroup] = (groupCounts[subject.choiceGroup] || 0) + 1;
+            }
+
+            // Second pass: actually compute values, validating against maxes and types
+            for (const component of subject.components) {
+                const colHeader = mapping[component];
+                const maxVal = subject.componentMax ? subject.componentMax[component] : subject.maxMarks;
+
                 if (!colHeader) {
-                    warnings.push({
-                        row: rowNum,
-                        field: `${subject.key}.${component}`,
-                        message: `No column header mapped for ${subject.label} → ${component}.`,
-                    });
+                    componentWarnings.push({ field: `${subject.key}.${component}`, message: `No column header mapped for ${subject.label} → ${component}.` });
                     subjectMarks[component] = null;
                     continue;
                 }
 
                 const colIdx = headerIndex[colHeader.toLowerCase()];
                 if (colIdx === undefined) {
-                    errors.push({
-                        row: rowNum,
-                        field: `${subject.key}.${component}`,
-                        message: `Column "${colHeader}" not found in headers.`,
-                    });
-                    rowHasError = true;
+                    componentErrors.push({ field: `${subject.key}.${component}`, message: `Column "${colHeader}" not found in headers.` });
+                    hasComponentError = true;
                     subjectMarks[component] = null;
                     continue;
                 }
 
                 let raw = row[colIdx];
                 if (raw === undefined || raw === null || String(raw).trim() === "") {
-                    // Treat blank marks as 0 with a warning
-                    warnings.push({
-                        row: rowNum,
-                        field: `${subject.key}.${component}`,
-                        message: `${subject.label} ${component} is blank — treated as 0.`,
-                    });
+                    componentWarnings.push({ field: `${subject.key}.${component}`, message: `${subject.label} ${component} is blank — treated as 0.` });
                     raw = 0;
                 } else if (typeof raw === "string" && raw.trim().toUpperCase() === "AB") {
-                    warnings.push({
-                        row: rowNum,
-                        field: `${subject.key}.${component}`,
-                        message: `${subject.label} ${component} is marked 'AB' (Absent) — treated as 0.`,
-                    });
+                    componentWarnings.push({ field: `${subject.key}.${component}`, message: `${subject.label} ${component} is marked 'AB' (Absent) — treated as 0.` });
                     raw = 0;
                 }
 
                 const num = Number(raw);
                 if (isNaN(num)) {
-                    errors.push({
-                        row: rowNum,
-                        field: `${subject.key}.${component}`,
-                        message: `${subject.label} ${component}: expected number, got "${raw}".`,
-                    });
-                    rowHasError = true;
+                    componentErrors.push({ field: `${subject.key}.${component}`, message: `${subject.label} ${component}: expected number, got "${raw}".` });
+                    hasComponentError = true;
                     subjectMarks[component] = null;
                     continue;
                 }
 
                 if (num < 0) {
-                    errors.push({
-                        row: rowNum,
-                        field: `${subject.key}.${component}`,
-                        message: `${subject.label} ${component}: marks cannot be negative (${num}).`,
-                    });
-                    rowHasError = true;
+                    componentErrors.push({ field: `${subject.key}.${component}`, message: `${subject.label} ${component}: marks cannot be negative (${num}).` });
+                    hasComponentError = true;
+                } else if (maxVal && num > maxVal) {
+                    componentErrors.push({ field: `${subject.key}.${component}`, message: `${subject.label} ${component}: exceeds max marks (${num} > ${maxVal}).` });
+                    hasComponentError = true;
                 }
 
                 subjectMarks[component] = num;
                 subjectTotal += num;
             }
 
+            // Push all gathered warnings/errors for this subject
+            if (hasComponentError) {
+                rowHasError = true;
+            }
+            componentErrors.forEach((e) => errors.push({ row: rowNum, field: e.field, message: e.message }));
+            componentWarnings.forEach((w) => warnings.push({ row: rowNum, field: w.field, message: w.message }));
+
             // ── Computed total for this subject ───────────────
             subjectMarks._total = subjectTotal;
             subjectMarks._max = subject.maxMarks;
+            subjectMarks._percentage = subject.maxMarks > 0 ? (subjectTotal / subject.maxMarks) * 100 : 0;
 
-            // Validate total does not exceed max
             if (subjectTotal > subject.maxMarks) {
                 errors.push({
                     row: rowNum,
@@ -279,11 +313,53 @@ export async function parseExcel(file, template, sheetOverride) {
             grandMax += subject.maxMarks;
         }
 
+        // Choice Group validation
+        for (const [groupId, groupDef] of Object.entries(template.choiceGroups || {})) {
+            const count = groupCounts[groupId] || 0;
+            if (count < groupDef.min || count > groupDef.max) {
+                errors.push({
+                    row: rowNum,
+                    field: 'choiceGroup',
+                    message: `${groupDef.label} must select exactly ${groupDef.min} (selected ${count}).`,
+                });
+                rowHasError = true;
+            }
+        }
+
         // ── C. Computed aggregates ──────────────────────────
+        let failedSubjects = [];
+        for (const subj of selectedSubjects) {
+            const sm = student.marks[subj.key];
+            if (sm && sm._percentage < template.grading.passPercent) {
+                failedSubjects.push(subj.label);
+            }
+        }
+
+        const pct = grandMax > 0 ? parseFloat(((grandTotal / grandMax) * 100).toFixed(2)) : 0;
+        student.computed.subjects = selectedSubjects;
         student.computed.totalMarks = grandTotal;
         student.computed.maxMarks = grandMax;
-        student.computed.percentage = grandMax > 0 ? parseFloat(((grandTotal / grandMax) * 100).toFixed(2)) : 0;
-        student.computed.grade = computeGrade(student.computed.percentage);
+        student.computed.percentage = pct;
+        student.computed.grade = computeGrade(pct);
+        student.computed.failedSubjects = failedSubjects;
+
+        if (failedSubjects.length > 0) {
+            student.computed.resultText = "FAILED";
+        } else {
+            student.computed.resultText = "PASSED";
+            let divLabel = "";
+            // Find highest passing division
+            for (const div of template.grading.divisions) {
+                if (pct >= div.threshold) {
+                    divLabel = div.name;
+                    break;
+                }
+            }
+            if (divLabel) {
+                student.computed.division = divLabel;
+            }
+        }
+
         student.computed.hasErrors = rowHasError;
 
         students.push(student);
@@ -342,18 +418,55 @@ export function generateSampleTemplate(template) {
         const mapping = template.columnMappings[subject.key];
         if (mapping) {
             for (const comp of subject.components) {
-                if (mapping[comp]) cols.push(mapping[comp]);
+                cols.push(mapping[comp]);
             }
         }
     }
 
     // Sample data rows
-    const data = [
-        cols,
-        [1, 101, "Aarav Sharma", "Rahul Sharma", "Priya Sharma", "15/05/2012", "V", "A", "2024-25", 195, 200, 75, 18, 80, 19, 92, 85, 15, 88, 45, 48, 90, 95, 85, 90],
-        [2, 102, "Isha Verma", "Anil Verma", "Kavita Verma", "22/08/2012", "V", "A", "2024-25", 180, 200, 78, 19, "AB", 18, 78, 75, 19, 90, 40, 45, 85, 92, 90, 85],
-        [3, 103, "Rohan Das", "Sunil Das", "Anita Das", "10/01/2012", "V", "A", "2024-25", 190, 200, 65, 15, 70, 16, 85, 78, 14, 82, 38, 42, 88, 90, 80, 88]
-    ];
+    const data = [cols];
+
+    // Build some sample rows
+    function createRow(id, name, optionalChoices = []) {
+        let row = [];
+        row.push(id); // SR_NO
+        row.push(100 + id); // ROLL_NO
+        row.push(name); // STUDENT_NAME
+        row.push(`Father ${name}`); // FATHER_NAME
+        row.push(`Mother ${name}`); // MOTHER_NAME
+        row.push(`15/05/2012`); // DOB
+        row.push("XI"); // CLASS
+        row.push("A"); // SECTION
+        row.push("2024-25"); // SESSION
+        row.push(195); // ATTEND_PRESENT
+        row.push(200); // ATTEND_TOTAL
+
+        for (const subject of template.subjects) {
+            if (subject.optional && !optionalChoices.includes(subject.key)) {
+                // leave blank
+                for (const _ of subject.components) {
+                    row.push("");
+                }
+            } else {
+                for (const comp of subject.components) {
+                    let mark = Math.max(1, Math.floor((subject.componentMax ? subject.componentMax[comp] : subject.maxMarks) * 0.8)); // 80% mark
+                    row.push(mark);
+                }
+            }
+        }
+        return row;
+    }
+
+    if (template.id === 'class11_science') {
+        data.push(createRow(1, "Aarav Sharma (Math)", ["math"]));
+        data.push(createRow(2, "Priya Verma (Bio)", ["biology"]));
+    } else if (template.id === 'class11_arts') {
+        data.push(createRow(1, "Rohan Das", ["geography", "political_science", "english_lit"]));
+        data.push(createRow(2, "Sunita Yadav", ["political_science", "english_lit", "economics"]));
+    } else {
+        data.push(createRow(1, "General Student 1"));
+        data.push(createRow(2, "General Student 2"));
+    }
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(data);
@@ -382,8 +495,15 @@ export function generateSampleTemplate(template) {
         ["3. Marks must be numerical values or 'AB' (Absent)."],
         ["4. Date of Birth (DOB) must be formatted as DD/MM/YYYY."],
         ["5. Ensure Attend Present and Attend Total fields are complete."],
-        ["6. Make sure you enter the data in the 'details' sheet only."]
+        ["6. Make sure you enter the data in the 'details' sheet only."],
+        ["7. If a subject is OPTIONAL and not taken, leave its columns COMPLETELY BLANK."],
     ];
+
+    if (template.choiceGroups) {
+        for (const [id, def] of Object.entries(template.choiceGroups)) {
+            instructionsData.push([`8. Choice Group - ${def.label}: You must fill EXACTLY ${def.min} subject(s). Keep others in this group blank.`]);
+        }
+    }
 
     const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
     wsInstructions['!cols'] = [{ wch: 80 }];
@@ -396,5 +516,5 @@ export function generateSampleTemplate(template) {
     XLSX.utils.book_append_sheet(wb, wsInstructions, "instructions");
 
     // Write sheet and trigger download
-    XLSX.writeFile(wb, "VPPS_ReportCard_Template.xlsx");
+    XLSX.writeFile(wb, template.downloadFileName || "VPPS_ReportCard_Template.xlsx");
 }
