@@ -132,12 +132,14 @@ export function renderReportCardBack(container, student, subjects) {
         </thead>
         <tbody>
           ${[
-      'Work Education', 'Art Education', 'Health & Physical Education',
-      'Discipline', 'Library Skills'
+      { name: 'Work Education', grade: info.coWorkEd },
+      { name: 'Art Education', grade: info.coArtEd },
+      { name: 'Health & Physical Education', grade: info.coHealthEd },
+      { name: 'Discipline', grade: info.coDiscipline }
     ].map(area => `
             <tr>
-              <td>${area}</td>
-              <td class="rc__td-center">A</td>
+              <td>${area.name}</td>
+              <td class="rc__td-center">${area.grade || '-'}</td>
             </tr>
           `).join('')}
         </tbody>

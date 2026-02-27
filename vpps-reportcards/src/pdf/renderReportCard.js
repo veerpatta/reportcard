@@ -703,13 +703,18 @@ function drawCoScholasticAndAttendance(page, font, fontBold, info, computed, x, 
     page.drawText('Co-Scholastic Areas', { x: x + 8, y: y - 13, size: 8, font: fontBold, color: C.white });
     y -= 18;
 
-    const areas = ['Work Education', 'Art Education', 'Health & Physical Education', 'Discipline'];
+    const areas = [
+        { name: 'Work Education', grade: info.coWorkEd || '-' },
+        { name: 'Art Education', grade: info.coArtEd || '-' },
+        { name: 'Health & Physical Education', grade: info.coHealthEd || '-' },
+        { name: 'Discipline', grade: info.coDiscipline || '-' }
+    ];
     areas.forEach((area, idx) => {
         if (idx % 2 === 0) {
             page.drawRectangle({ x, y: y - 16, width: colW, height: 16, color: C.rowAlt });
         }
-        page.drawText(area, { x: x + 8, y: y - 11, size: 7.5, font, color: C.text });
-        page.drawText('A', { x: x + colW - 16, y: y - 11, size: 7.5, font: fontBold, color: C.accent });
+        page.drawText(area.name, { x: x + 8, y: y - 11, size: 7.5, font, color: C.text });
+        page.drawText(String(area.grade), { x: x + colW - 16, y: y - 11, size: 7.5, font: fontBold, color: C.accent });
         page.drawLine({ start: { x, y: y - 16 }, end: { x: x + colW, y: y - 16 }, thickness: 0.25, color: C.border });
         y -= 16;
     });

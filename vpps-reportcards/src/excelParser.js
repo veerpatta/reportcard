@@ -93,19 +93,45 @@ export async function parseExcel(file, template, sheetOverride) {
     const headerRow = template.headerRow || 1;
 
     // Convert sheet to array-of-arrays so we control header resolution
-    const rawRows = XLSX.utils.sheet_to_json(ws, {
+    const rawRowsHorizontal = XLSX.utils.sheet_to_json(ws, {
         header: 1, // array-of-arrays
         defval: "",
         blankrows: false,
         raw: false, // stringify values for consistent handling
     });
 
-    if (rawRows.length < headerRow + 1) {
+    if (rawRowsHorizontal.length === 0) {
         return {
             students: [],
-            errors: [{ row: 0, field: "data", message: "No data rows found after the header row." }],
+            errors: [{ row: 0, field: "data", message: "No data found in sheet." }],
             warnings: [],
         };
+    }
+
+    // TRANSPOSE horizontal layout into rows of students for the parser
+    let maxCols = 0;
+    rawRowsHorizontal.forEach(r => { if (r.length > maxCols) maxCols = r.length; });
+
+    // We expect at least a column of fields, plus data columns
+    if (maxCols < 2) {
+        return {
+            students: [],
+            errors: [{ row: 0, field: "data", message: "No student data columns found. Ensure you are filling data into columns." }],
+            warnings: [],
+        };
+    }
+
+    const rawRows = [];
+    for (let c = 0; c < maxCols; c++) {
+        const hRow = [];
+        for (let r = 0; r < rawRowsHorizontal.length; r++) {
+            hRow.push(rawRowsHorizontal[r][c] !== undefined ? String(rawRowsHorizontal[r][c]).trim() : "");
+        }
+
+        // Skip totally empty transposed rows (columns)
+        if (c > 0 && hRow.every(v => v === "")) continue;
+
+        rawRows.push(hRow);
     }
 
     // ── Build header index ────────────────────────────────
@@ -146,7 +172,7 @@ export async function parseExcel(file, template, sheetOverride) {
             // Required-field check
             if (value === "") {
                 errors.push({
-                    row: rowNum,
+                    row: `Column ${XLSX.utils.encode_col(rowIdx + 1)}`,
                     field: fieldKey,
                     message: `"${fieldDef.label}" is empty.`,
                 });
@@ -158,7 +184,7 @@ export async function parseExcel(file, template, sheetOverride) {
                 const num = Number(value);
                 if (isNaN(num)) {
                     errors.push({
-                        row: rowNum,
+                        row: `Column ${XLSX.utils.encode_col(rowIdx + 1)}`,
                         field: fieldKey,
                         message: `"${fieldDef.label}" should be a number but got "${value}".`,
                     });
@@ -291,8 +317,9 @@ export async function parseExcel(file, template, sheetOverride) {
             if (hasComponentError) {
                 rowHasError = true;
             }
-            componentErrors.forEach((e) => errors.push({ row: rowNum, field: e.field, message: e.message }));
-            componentWarnings.forEach((w) => warnings.push({ row: rowNum, field: w.field, message: w.message }));
+            const colId = `Column ${XLSX.utils.encode_col(rowIdx + 1)}`;
+            componentErrors.forEach((e) => errors.push({ row: colId, field: e.field, message: e.message }));
+            componentWarnings.forEach((w) => warnings.push({ row: colId, field: w.field, message: w.message }));
 
             // ── Computed total for this subject ───────────────
             subjectMarks._total = subjectTotal;
@@ -301,7 +328,7 @@ export async function parseExcel(file, template, sheetOverride) {
 
             if (subjectTotal > subject.maxMarks) {
                 errors.push({
-                    row: rowNum,
+                    row: `Column ${XLSX.utils.encode_col(rowIdx + 1)}`,
                     field: subject.key,
                     message: `${subject.label}: total ${subjectTotal} exceeds max marks ${subject.maxMarks}.`,
                 });
@@ -318,7 +345,7 @@ export async function parseExcel(file, template, sheetOverride) {
             const count = groupCounts[groupId] || 0;
             if (count < groupDef.min || count > groupDef.max) {
                 errors.push({
-                    row: rowNum,
+                    row: `Column ${XLSX.utils.encode_col(rowIdx + 1)}`,
                     field: 'choiceGroup',
                     message: `${groupDef.label} must select exactly ${groupDef.min} (selected ${count}).`,
                 });
@@ -438,8 +465,12 @@ export function generateSampleTemplate(template) {
         row.push("XI"); // CLASS
         row.push("A"); // SECTION
         row.push("2024-25"); // SESSION
-        row.push(195); // ATTEND_PRESENT
         row.push(200); // ATTEND_TOTAL
+
+        row.push("A"); // CO_WORK_ED
+        row.push("A"); // CO_ART_ED
+        row.push("A"); // CO_HEALTH_ED
+        row.push("A"); // CO_DISCIPLINE
 
         for (const subject of template.subjects) {
             if (subject.optional && !optionalChoices.includes(subject.key)) {
@@ -457,32 +488,41 @@ export function generateSampleTemplate(template) {
         return row;
     }
 
+    const horizontalData = [cols];
+
     if (template.id === 'class11_science') {
-        data.push(createRow(1, "Aarav Sharma (Math)", ["math"]));
-        data.push(createRow(2, "Priya Verma (Bio)", ["biology"]));
+        horizontalData.push(createRow(1, "Aarav Sharma (Math)", ["math"]));
+        horizontalData.push(createRow(2, "Priya Verma (Bio)", ["biology"]));
     } else if (template.id === 'class11_arts') {
-        data.push(createRow(1, "Rohan Das", ["geography", "political_science", "english_lit"]));
-        data.push(createRow(2, "Sunita Yadav", ["political_science", "english_lit", "economics"]));
+        horizontalData.push(createRow(1, "Rohan Das", ["geography", "political_science", "english_lit"]));
+        horizontalData.push(createRow(2, "Sunita Yadav", ["political_science", "english_lit", "economics"]));
     } else {
-        data.push(createRow(1, "General Student 1"));
-        data.push(createRow(2, "General Student 2"));
+        horizontalData.push(createRow(1, "General Student 1"));
+        horizontalData.push(createRow(2, "General Student 2"));
     }
 
+    // Transpose
+    const transposedData = horizontalData[0].map((_, colIndex) => horizontalData.map(row => row[colIndex]));
+
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(data);
+    const ws = XLSX.utils.aoa_to_sheet(transposedData);
 
-    // Make columns wider
-    ws['!cols'] = cols.map(c => ({ wch: Math.max(c.length + 2, 12) }));
+    // Make first column wider for headers, subsequent columns wide for student names
+    const colWidths = [{ wch: 30 }];
+    for (let i = 1; i < transposedData[0].length; i++) {
+        colWidths.push({ wch: 22 });
+    }
+    ws['!cols'] = colWidths;
 
-    // Bold top row
-    for (let C = 0; C < cols.length; ++C) {
-        const addr = XLSX.utils.encode_cell({ r: 0, c: C });
+    // Bold first column
+    for (let R = 0; R < transposedData.length; ++R) {
+        const addr = XLSX.utils.encode_cell({ r: R, c: 0 });
         if (!ws[addr]) continue;
         ws[addr].s = { font: { bold: true } };
     }
 
-    // Freeze top row
-    ws['!views'] = [{ state: 'frozen', xSplit: 0, ySplit: 1 }];
+    // Freeze first column
+    ws['!views'] = [{ state: 'frozen', xSplit: 1, ySplit: 0 }];
 
     XLSX.utils.book_append_sheet(wb, ws, template.sheetName || "details");
 
@@ -490,8 +530,8 @@ export function generateSampleTemplate(template) {
     const instructionsData = [
         ["VPPS Report Card Excel Template Instructions"],
         [""],
-        ["1. One row = one student."],
-        ["2. Do not rename the columns on the 'details' sheet, the system relies on exact names."],
+        ["1. One COLUMN = one student. Fill data vertically!"],
+        ["2. Do not rename the fields on the 'details' sheet, the system relies on exact names."],
         ["3. Marks must be numerical values or 'AB' (Absent)."],
         ["4. Date of Birth (DOB) must be formatted as DD/MM/YYYY."],
         ["5. Ensure Attend Present and Attend Total fields are complete."],

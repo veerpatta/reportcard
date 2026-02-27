@@ -40,9 +40,10 @@ Follow these sequential steps to effortlessly generate your class's report cards
 ### 2. Fill in the Data Correctly
 - Open the downloaded Excel sheet. You will find two tabs: `details` and `Instructions`.
 - Do **NOT** rename columns on `details`.
-- You only need to type marks into the applicable component columns. **Blank components correctly compute as 0 and generate a warning** whereas explicit `AB` calculates to `0` automatically in your totals.
+- **Vertical Layout:** Each COLUMN is a single student. Fill out the student data vertically (down their specific column).
+- You only need to type marks into the applicable component rows. **Blank components correctly compute as 0 and generate a warning** whereas explicit `AB` calculates to `0` automatically in your totals.
 - **Optional Subjects:** 
-  - If a student *did not* take an optional subject (e.g., Biology), **leave all its columns 100% blank**.
+  - If a student *did not* take an optional subject (e.g., Biology), **leave their entire row for that subject 100% blank**.
   - The system will naturally ignore it and compute total marks strictly out of the valid enrolled amount!
 
 ### 3. Parse and Fix Errors

@@ -16,6 +16,10 @@ const commonStudentFields = {
     session: { label: "Session", excelHeader: "SESSION", type: "string" },
     attendPresent: { label: "Attendance Present", excelHeader: "ATTEND_PRESENT", type: "number" },
     attendTotal: { label: "Attendance Total", excelHeader: "ATTEND_TOTAL", type: "number" },
+    coWorkEd: { label: "Work Education Grade", excelHeader: "CO_WORK_ED", type: "string" },
+    coArtEd: { label: "Art Education Grade", excelHeader: "CO_ART_ED", type: "string" },
+    coHealthEd: { label: "Health & PE Grade", excelHeader: "CO_HEALTH_ED", type: "string" },
+    coDiscipline: { label: "Discipline Grade", excelHeader: "CO_DISCIPLINE", type: "string" },
 };
 
 const commonGrading = {

@@ -20,6 +20,8 @@ This document provides comprehensive context, architectural details, and strict 
 
 ### B. Excel Parsing (`src/excelParser.js`)
 - The parser reads the uploaded `.xlsx` file (specifically the `details` sheet).
+- **CRITICAL LAYOUT RULE:** The Excel sheet uses a **Vertical Layout** for data entry! This means **Row 1** contains headers (like Student 1, Student 2) and **Column A (Index 0)** contains the field names (like `SR_NO`, `MATH_UT1`). 
+- To seamlessly support this, `excelParser.js` immediately transposes the `XLSX.sheet_to_json` array upon read, converting the columns back into student rows internally. Thus, the rest of the parsing engine operates exactly as if the data were horizontal!
 - It extracts:
   1. `student.info`: Identity (Name, Father's Name, DOB, etc.) and Attendance (`attendTotal`, `attendPresent`).
   2. `student.marks`: Key-value pairs matching subject keys to component scores. Missing values default to `0`. `AB` (Absent) strings also parse as `0` for calculations.
