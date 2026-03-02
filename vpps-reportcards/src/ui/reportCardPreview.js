@@ -21,7 +21,7 @@ export function renderReportCardFront(container, student, subjects) {
       <div class="rc__header">
         <img src="${import.meta.env.BASE_URL}logo.png" alt="VPPS" class="rc__logo" />
         <div class="rc__school-info">
-          <h2 class="rc__school-name">Veer Patta Senior Secondary School</h2>
+          <h2 class="rc__school-name">Shri Veer Patta Senior Secondary School</h2>
           <p class="rc__school-sub">Affiliated to Rajasthan Education Board</p>
           <p class="rc__school-sub rc__school-sub--sm">Session: ${info.session || '—'}</p>
         </div>
@@ -115,7 +115,7 @@ export function renderReportCardBack(container, student, subjects) {
       <div class="rc__header rc__header--compact">
         <img src="${import.meta.env.BASE_URL}logo.png" alt="VPPS" class="rc__logo rc__logo--sm" />
         <div class="rc__school-info">
-          <h2 class="rc__school-name rc__school-name--sm">Veer Patta Senior Secondary School</h2>
+          <h2 class="rc__school-name rc__school-name--sm">Shri Veer Patta Senior Secondary School</h2>
           <p class="rc__school-sub rc__school-sub--sm">Session: ${info.session || '—'}</p>
         </div>
       </div>

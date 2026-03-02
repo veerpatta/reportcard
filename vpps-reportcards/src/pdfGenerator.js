@@ -91,7 +91,7 @@ function drawFrontPage(pdfDoc, student, subjects, font, fontBold, logoImage) {
     }
 
     const schoolNameX = MARGIN + 60;
-    page.drawText('Veer Patta Public School', {
+    page.drawText('Shri Veer Patta Senior Secondary School', {
         x: schoolNameX,
         y: y - 18,
         size: 18,
@@ -278,7 +278,7 @@ function drawBackPage(pdfDoc, student, subjects, font, fontBold, logoImage) {
         });
     }
 
-    page.drawText('Veer Patta Public School', {
+    page.drawText('Shri Veer Patta Senior Secondary School', {
         x: MARGIN + 45,
         y: y - 14,
         size: 13,

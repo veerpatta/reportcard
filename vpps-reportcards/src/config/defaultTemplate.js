@@ -1,5 +1,5 @@
 /**
- * Default report-card template for Veer Patta Public School.
+ * Default report-card template for Shri Veer Patta Senior Secondary School.
  * Conforms to the schema defined in template.schema.json.
  *
  * To add / remove subjects, edit the `subjects` array AND

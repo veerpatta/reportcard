@@ -312,7 +312,7 @@ function drawHeader(page, fontBold, font, logoImage, y) {
 
     // School name — centered between logo-right and page-right
     const textBlockX = MARGIN + logoSize + 15;
-    const schoolName = 'Veer Patta Senior Secondary School';
+    const schoolName = 'Shri Veer Patta Senior Secondary School';
     const nameSize = 19;
     const nameW = fontBold.widthOfTextAtSize(schoolName, nameSize);
     const centerX = (PAGE_W - nameW) / 2;
@@ -361,7 +361,7 @@ function drawMiniHeader(page, fontBold, font, logoImage, info, y) {
         });
     }
 
-    page.drawText('Veer Patta Senior Secondary School', {
+    page.drawText('Shri Veer Patta Senior Secondary School', {
         x: MARGIN + logoSize + 12,
         y: y - 16,
         size: 14,
